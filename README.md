@@ -1,5 +1,7 @@
 # Exploring LLM Latent Space Geometry Through Dimensionality Reduction
 
+[![arXiv](https://img.shields.io/badge/arXiv-2511.21594-b31b1b.svg)](https://arxiv.org/html/2511.21594)
+
 
 ## Environment
 
