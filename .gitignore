@@ -2,6 +2,7 @@
 playground.*
 hf_models
 processed_data
+.DS_Store
 
 # Data types
 *.pkl
