@@ -101,6 +101,17 @@
             border-top: 1px solid rgba(255,255,255,0.1);
         }
         .footer a { color: #4fc3f7; }
+        .nav-link {
+            display: inline-block;
+            padding: 10px 20px;
+            background: rgba(79, 195, 247, 0.2);
+            border: 1px solid #4fc3f7;
+            border-radius: 8px;
+            color: #4fc3f7;
+            text-decoration: none;
+            margin: 5px;
+        }
+        .nav-link:hover { background: rgba(79, 195, 247, 0.3); }
     </style>
 </head>
 <body>
@@ -108,6 +119,10 @@
         <h1>Explorador de Geometría del Espacio Latente</h1>
         <p class="subtitle">Visualización interactiva de las representaciones internas de GPT-2</p>
         <p class="subtitle">Modelo: GPT-2 | 12 Capas | 768 Dimensiones</p>
+        <div style="margin-top: 20px;">
+            <a href="ejemplos_paper.html" class="nav-link">Ver Ejemplos del Paper</a>
+            <a href="helix_2d.html" class="nav-link">Ver Hélice 2D</a>
+        </div>
     </div>
 
     <div class="stats">

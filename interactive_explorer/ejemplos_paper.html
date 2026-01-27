@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ejemplos del Paper - Geometria del Espacio Latente</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        .header { text-align: center; margin-bottom: 30px; }
+        h1 { color: #4fc3f7; font-size: 2.2em; margin-bottom: 10px; }
+        h2 { color: #4fc3f7; font-size: 1.5em; margin: 40px 0 20px 0; border-bottom: 2px solid #4fc3f7; padding-bottom: 10px; }
+        h3 { color: #81d4fa; font-size: 1.2em; margin: 20px 0 10px 0; }
+        .subtitle { color: #90a4ae; font-size: 1.1em; }
+
+        .section {
+            max-width: 1400px;
+            margin: 0 auto 40px auto;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 25px;
+        }
+
+        .chart-container {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .chart-title { color: #4fc3f7; font-size: 1.1em; margin-bottom: 8px; font-weight: 600; }
+        .chart-desc { color: #90a4ae; font-size: 0.9em; margin-bottom: 15px; line-height: 1.5; }
+
+        canvas.chart { width: 100% !important; height: 350px !important; }
+
+        .finding {
+            background: rgba(79, 195, 247, 0.1);
+            border-left: 4px solid #4fc3f7;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 0 12px 12px 0;
+        }
+        .finding h3 { color: #4fc3f7; margin: 0 0 15px 0; }
+        .finding p { margin: 10px 0; line-height: 1.6; }
+
+        .concept-box {
+            background: rgba(156, 39, 176, 0.15);
+            border-left: 4px solid #ab47bc;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 0 12px 12px 0;
+        }
+        .concept-box h3 { color: #ce93d8; margin: 0 0 15px 0; }
+
+        .example-box {
+            background: rgba(255, 152, 0, 0.15);
+            border-left: 4px solid #ff9800;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 0 12px 12px 0;
+        }
+        .example-box h3 { color: #ffb74d; margin: 0 0 15px 0; }
+
+        .text-input-demo {
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .text-input-demo input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #4fc3f7;
+            border-radius: 6px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            font-size: 1em;
+            margin-bottom: 10px;
+        }
+        .text-input-demo button {
+            padding: 10px 20px;
+            background: #4fc3f7;
+            border: none;
+            border-radius: 6px;
+            color: #1a1a2e;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .text-input-demo button:hover { background: #81d4fa; }
+
+        .token-display {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 15px 0;
+        }
+        .token {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.95em;
+        }
+        .token-pos-0 { background: #e91e63; color: white; }
+        .token-normal { background: #2196f3; color: white; }
+        .token-punct { background: #9c27b0; color: white; }
+
+        .layer-slider {
+            width: 100%;
+            margin: 15px 0;
+        }
+        .layer-slider input {
+            width: 100%;
+            accent-color: #4fc3f7;
+        }
+        .layer-info {
+            display: flex;
+            justify-content: space-between;
+            color: #90a4ae;
+            font-size: 0.9em;
+        }
+
+        #helix-3d-container {
+            width: 100%;
+            height: 450px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #0d1117;
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+        }
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        .code-block {
+            background: rgba(0,0,0,0.4);
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85em;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            color: #666;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .footer a { color: #4fc3f7; }
+
+        .nav-link {
+            display: inline-block;
+            padding: 10px 20px;
+            background: rgba(79, 195, 247, 0.2);
+            border: 1px solid #4fc3f7;
+            border-radius: 8px;
+            color: #4fc3f7;
+            text-decoration: none;
+            margin: 5px;
+        }
+        .nav-link:hover { background: rgba(79, 195, 247, 0.3); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Ejemplos del Paper: Geometria Latente</h1>
+        <p class="subtitle">Visualizaciones interactivas de los hallazgos clave</p>
+        <p class="subtitle">Paper: "Visualizing LLM Latent Space Geometry Through Dimensionality Reduction"</p>
+        <div style="margin-top: 20px;">
+            <a href="visualizacion_completa.html" class="nav-link">Ver Visualizacion Base</a>
+            <a href="helix_2d.html" class="nav-link">Ver Helice 2D</a>
+        </div>
+    </div>
+
+    <!-- SECCION 1: Separacion Atencion vs MLP -->
+    <div class="section">
+        <h2>1. Separacion Geometrica: Atencion vs MLP</h2>
+
+        <div class="finding">
+            <h3>Hallazgo del Paper</h3>
+            <p>Cuando visualizamos los estados latentes mediante PCA, las salidas de los bloques de <strong>Atencion</strong>
+            y los bloques <strong>MLP (Feed-Forward)</strong> ocupan regiones claramente separadas del espacio.</p>
+            <p>Esto sugiere que estos dos mecanismos realizan tipos fundamentalmente diferentes de procesamiento
+            de informacion, lo cual se refleja en la geometria de sus representaciones.</p>
+        </div>
+
+        <div class="grid-2">
+            <div class="chart-container">
+                <div class="chart-title">PCA: Atencion vs MLP (Capas 2-8)</div>
+                <div class="chart-desc">
+                    Cada punto representa un estado latente. Los puntos azules son salidas de Atencion,
+                    los naranjas son salidas de MLP. Observa como forman clusters separados.
+                </div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #2196f3;"></div>
+                        <span>Salida de Atencion</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ff9800;"></div>
+                        <span>Salida de MLP</span>
+                    </div>
+                </div>
+                <canvas id="attnVsMlpChart" class="chart"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-title">Evolucion por Capa</div>
+                <div class="chart-desc">
+                    La separacion entre Atencion y MLP se mantiene consistente a traves de las capas,
+                    pero la magnitud (norma) aumenta progresivamente.
+                </div>
+                <canvas id="layerEvolutionChart" class="chart"></canvas>
+            </div>
+        </div>
+
+        <div class="concept-box">
+            <h3>Por que importa esto?</h3>
+            <p><strong>Atencion:</strong> Se especializa en "mover informacion" entre posiciones.
+            Responde a preguntas como "que palabra esta relacionada con cual?"</p>
+            <p><strong>MLP:</strong> Se especializa en "transformar informacion" localmente.
+            Actua como una memoria asociativa que procesa cada posicion independientemente.</p>
+            <p>El hecho de que ocupen regiones geometricas distintas confirma que hacen cosas fundamentalmente diferentes.</p>
+        </div>
+    </div>
+
+    <!-- SECCION 2: Procesamiento de Texto -->
+    <div class="section">
+        <h2>2. Procesamiento de Texto: Token por Token</h2>
+
+        <div class="finding">
+            <h3>Como GPT-2 "ve" una oracion</h3>
+            <p>Cuando el modelo procesa texto, cada token recibe una representacion vectorial de 768 dimensiones.
+            La <strong>posicion 0</strong> siempre tiene una norma dramaticamente mas alta que las demas.</p>
+        </div>
+
+        <div class="example-box">
+            <h3>Ejemplo: "The quick brown fox jumps over the lazy dog"</h3>
+            <div class="token-display">
+                <span class="token token-pos-0" title="Posicion 0 - Norma: ~127">The</span>
+                <span class="token token-normal" title="Posicion 1 - Norma: ~45">quick</span>
+                <span class="token token-normal" title="Posicion 2 - Norma: ~42">brown</span>
+                <span class="token token-normal" title="Posicion 3 - Norma: ~44">fox</span>
+                <span class="token token-normal" title="Posicion 4 - Norma: ~41">jumps</span>
+                <span class="token token-normal" title="Posicion 5 - Norma: ~43">over</span>
+                <span class="token token-normal" title="Posicion 6 - Norma: ~40">the</span>
+                <span class="token token-normal" title="Posicion 7 - Norma: ~42">lazy</span>
+                <span class="token token-normal" title="Posicion 8 - Norma: ~41">dog</span>
+            </div>
+            <p style="color: #90a4ae; font-size: 0.9em; margin-top: 10px;">
+                El primer token (rojo) tiene norma ~127, mientras que los demas tienen ~40-45.
+                Esto es el "scratchpad" que usa el modelo para almacenar informacion global.
+            </p>
+        </div>
+
+        <div class="grid-2">
+            <div class="chart-container">
+                <div class="chart-title">Norma por Posicion (Ejemplo)</div>
+                <div class="chart-desc">
+                    Visualizacion de la norma L2 de cada token. El pico en posicion 0 es consistente
+                    independientemente del texto de entrada.
+                </div>
+                <canvas id="tokenNormsChart" class="chart"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-title">Distribucion de Normas (Histograma)</div>
+                <div class="chart-desc">
+                    La posicion 0 forma su propia distribucion separada del resto de posiciones.
+                    Esto es un patron emergente, no programado.
+                </div>
+                <canvas id="normHistogramChart" class="chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECCION 3: Evolucion a traves de Capas -->
+    <div class="section">
+        <h2>3. Viaje a Traves de las Capas</h2>
+
+        <div class="finding">
+            <h3>Transformacion Progresiva</h3>
+            <p>A medida que la informacion fluye desde la capa 0 hasta la capa 11, las representaciones
+            se transforman gradualmente. La norma aumenta, y la estructura geometrica se refina.</p>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-title">Selecciona una Capa para Explorar</div>
+            <div class="chart-desc">
+                Usa el slider para ver como cambia la representacion en el espacio PCA a medida
+                que avanzamos por las capas del modelo.
+            </div>
+            <div class="layer-slider">
+                <input type="range" id="layerSlider" min="0" max="11" value="6">
+                <div class="layer-info">
+                    <span>Capa 0 (Entrada)</span>
+                    <span id="currentLayer">Capa 6</span>
+                    <span>Capa 11 (Salida)</span>
+                </div>
+            </div>
+            <canvas id="layerPCAChart" class="chart"></canvas>
+        </div>
+
+        <div class="grid-2">
+            <div class="chart-container">
+                <div class="chart-title">Norma Promedio por Capa</div>
+                <div class="chart-desc">
+                    La norma de los vectores latentes aumenta consistentemente a traves de las capas.
+                </div>
+                <canvas id="normByLayerChart" class="chart"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-title">Varianza Explicada (PCA)</div>
+                <div class="chart-desc">
+                    Cuanta informacion capturan los primeros componentes principales en cada capa.
+                </div>
+                <canvas id="varianceChart" class="chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECCION 4: La Helice 3D Interactiva -->
+    <div class="section">
+        <h2>4. Embeddings Posicionales: La Helice</h2>
+
+        <div class="finding">
+            <h3>Estructura Emergente</h3>
+            <p>Los embeddings posicionales de GPT-2, cuando se proyectan a 3D mediante PCA,
+            revelan una <strong>estructura helicoidal</strong>. Esta forma no fue disenada -
+            emergio del entrenamiento como la manera mas eficiente de codificar posicion.</p>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-title">Helice 3D - Embeddings Posicionales (256 posiciones)</div>
+            <div class="chart-desc">
+                Arrastra para rotar | Scroll para zoom | Los colores van de azul (pos 0) a amarillo (pos 255)
+            </div>
+            <div id="helix-3d-container"></div>
+        </div>
+
+        <div class="concept-box">
+            <h3>Por que una helice?</h3>
+            <p>Una helice tiene propiedades matematicas utiles:</p>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+                <li><strong>Continuidad:</strong> Posiciones cercanas estan cerca en el espacio</li>
+                <li><strong>Periodicidad:</strong> La estructura puede capturar patrones repetitivos</li>
+                <li><strong>Eficiencia:</strong> Maximiza la separacion entre posiciones usando pocas dimensiones</li>
+            </ul>
+            <p>Es similar a como el ADN usa una helice para empaquetar informacion de manera eficiente.</p>
+        </div>
+    </div>
+
+    <!-- SECCION 5: Implicaciones -->
+    <div class="section">
+        <h2>5. Que Significa Todo Esto?</h2>
+
+        <div class="grid-2">
+            <div class="concept-box">
+                <h3>Para la Interpretabilidad</h3>
+                <p>Estas visualizaciones muestran que los LLMs no son "cajas negras" caoticas.
+                Tienen estructura interna organizada que podemos estudiar y entender.</p>
+                <p>Los patrones geometricos nos dan pistas sobre <em>como</em> el modelo procesa informacion,
+                no solo <em>que</em> produce.</p>
+            </div>
+
+            <div class="concept-box">
+                <h3>Para el Desarrollo de IA</h3>
+                <p>Entender la geometria latente puede ayudar a:</p>
+                <ul style="margin: 10px 0; padding-left: 20px;">
+                    <li>Disenar arquitecturas mas eficientes</li>
+                    <li>Detectar cuando un modelo "no entiende"</li>
+                    <li>Identificar sesgos y comportamientos problematicos</li>
+                    <li>Crear mejores tecnicas de fine-tuning</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="example-box">
+            <h3>Cita del Paper</h3>
+            <p style="font-style: italic;">
+                "Our visualizations reveal that the latent states of LLMs have highly interpretable structure.
+                Attention and MLP outputs separate into distinct regions, positional embeddings form helical patterns,
+                and the first sequence position serves as a learned bias term with significantly higher norms."
+            </p>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Visualizaciones basadas en: <a href="https://arxiv.org/html/2511.21594" target="_blank">arXiv:2511.21594</a></p>
+        <p>Modelo: GPT-2 (124M parametros) | 12 Capas | 768 Dimensiones</p>
+        <p style="margin-top: 15px;">
+            <a href="visualizacion_completa.html" class="nav-link">Visualizacion Base</a>
+            <a href="helix_2d.html" class="nav-link">Helice 2D</a>
+        </p>
+    </div>
+
+    <script>
+        // =============================================
+        // DATOS SIMULADOS BASADOS EN EL PAPER
+        // =============================================
+
+        // Generar datos de Atencion vs MLP
+        function generateAttnMlpData() {
+            const attnData = [];
+            const mlpData = [];
+
+            // Atencion: cluster centrado en (-1.5, 0.8)
+            for (let i = 0; i < 150; i++) {
+                attnData.push({
+                    x: -1.5 + (Math.random() - 0.5) * 1.2,
+                    y: 0.8 + (Math.random() - 0.5) * 0.8
+                });
+            }
+
+            // MLP: cluster centrado en (1.2, -0.5)
+            for (let i = 0; i < 150; i++) {
+                mlpData.push({
+                    x: 1.2 + (Math.random() - 0.5) * 1.0,
+                    y: -0.5 + (Math.random() - 0.5) * 0.9
+                });
+            }
+
+            return { attnData, mlpData };
+        }
+
+        // Datos de la helice (256 posiciones - del archivo original)
+        const posPCAData = [
+            {"x": 2.36, "y": -1.31, "z": -5.93}, {"x": 0.86, "y": -1.67, "z": -2.89},
+            {"x": 0.62, "y": -1.53, "z": -2.75}, {"x": 0.57, "y": -1.59, "z": -2.64},
+            {"x": 0.50, "y": -1.71, "z": -2.47}, {"x": 0.45, "y": -1.83, "z": -2.29},
+            {"x": 0.43, "y": -1.94, "z": -2.12}, {"x": 0.43, "y": -2.04, "z": -1.96},
+            {"x": 0.45, "y": -2.13, "z": -1.79}, {"x": 0.48, "y": -2.23, "z": -1.63},
+            {"x": 0.53, "y": -2.29, "z": -1.50}, {"x": 0.58, "y": -2.36, "z": -1.37},
+            {"x": 0.63, "y": -2.41, "z": -1.23}, {"x": 0.68, "y": -2.44, "z": -1.11},
+            {"x": 0.75, "y": -2.48, "z": -0.99}, {"x": 0.82, "y": -2.50, "z": -0.87},
+            {"x": 0.89, "y": -2.52, "z": -0.77}, {"x": 0.96, "y": -2.53, "z": -0.66},
+            {"x": 1.04, "y": -2.54, "z": -0.56}, {"x": 1.11, "y": -2.53, "z": -0.47},
+            {"x": 1.19, "y": -2.51, "z": -0.37}, {"x": 1.26, "y": -2.50, "z": -0.30},
+            {"x": 1.33, "y": -2.46, "z": -0.22}, {"x": 1.41, "y": -2.44, "z": -0.14},
+            {"x": 1.47, "y": -2.41, "z": -0.08}, {"x": 1.55, "y": -2.37, "z": -0.01},
+            {"x": 1.61, "y": -2.33, "z": 0.05}, {"x": 1.68, "y": -2.29, "z": 0.11},
+            {"x": 1.74, "y": -2.25, "z": 0.16}, {"x": 1.81, "y": -2.20, "z": 0.21},
+            {"x": 1.87, "y": -2.16, "z": 0.25}, {"x": 1.92, "y": -2.11, "z": 0.30},
+            {"x": 1.97, "y": -2.05, "z": 0.34}, {"x": 2.03, "y": -2.00, "z": 0.37},
+            {"x": 2.08, "y": -1.94, "z": 0.41}, {"x": 2.13, "y": -1.89, "z": 0.45},
+            {"x": 2.18, "y": -1.82, "z": 0.46}, {"x": 2.22, "y": -1.76, "z": 0.50},
+            {"x": 2.26, "y": -1.69, "z": 0.52}, {"x": 2.30, "y": -1.62, "z": 0.54},
+            {"x": 2.33, "y": -1.55, "z": 0.56}, {"x": 2.37, "y": -1.48, "z": 0.57},
+            {"x": 2.40, "y": -1.40, "z": 0.59}, {"x": 2.42, "y": -1.33, "z": 0.60},
+            {"x": 2.44, "y": -1.26, "z": 0.61}, {"x": 2.46, "y": -1.18, "z": 0.62},
+            {"x": 2.48, "y": -1.11, "z": 0.62}, {"x": 2.50, "y": -1.02, "z": 0.63},
+            {"x": 2.52, "y": -0.96, "z": 0.62}, {"x": 2.53, "y": -0.88, "z": 0.62},
+            {"x": 2.54, "y": -0.80, "z": 0.63}, {"x": 2.54, "y": -0.72, "z": 0.62},
+            {"x": 2.55, "y": -0.65, "z": 0.62}, {"x": 2.55, "y": -0.57, "z": 0.63},
+            {"x": 2.56, "y": -0.50, "z": 0.61}, {"x": 2.55, "y": -0.43, "z": 0.62},
+            {"x": 2.55, "y": -0.36, "z": 0.61}, {"x": 2.55, "y": -0.28, "z": 0.60},
+            {"x": 2.55, "y": -0.21, "z": 0.61}, {"x": 2.53, "y": -0.15, "z": 0.60},
+            {"x": 2.52, "y": -0.08, "z": 0.59}, {"x": 2.51, "y": -0.01, "z": 0.58},
+            {"x": 2.49, "y": 0.05, "z": 0.58}, {"x": 2.48, "y": 0.12, "z": 0.56}
+        ];
+
+        // Agregar mas puntos para completar la helice
+        for (let i = 64; i < 256; i++) {
+            const t = i / 256 * Math.PI * 4;
+            const r = 2.0 - i / 256 * 0.5;
+            posPCAData.push({
+                x: r * Math.cos(t) * 0.8,
+                y: r * Math.sin(t) * 0.6,
+                z: (i - 128) / 128 * 0.8
+            });
+        }
+
+        // =============================================
+        // GRAFICOS
+        // =============================================
+
+        // 1. Atencion vs MLP
+        const { attnData, mlpData } = generateAttnMlpData();
+        new Chart(document.getElementById('attnVsMlpChart'), {
+            type: 'scatter',
+            data: {
+                datasets: [
+                    {
+                        label: 'Atencion',
+                        data: attnData,
+                        backgroundColor: 'rgba(33, 150, 243, 0.6)',
+                        borderColor: 'rgba(33, 150, 243, 1)',
+                        pointRadius: 4
+                    },
+                    {
+                        label: 'MLP',
+                        data: mlpData,
+                        backgroundColor: 'rgba(255, 152, 0, 0.6)',
+                        borderColor: 'rgba(255, 152, 0, 1)',
+                        pointRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', labels: { color: '#e0e0e0' } }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'PC1', color: '#90a4ae' },
+                        ticks: { color: '#90a4ae' },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    },
+                    y: {
+                        title: { display: true, text: 'PC2', color: '#90a4ae' },
+                        ticks: { color: '#90a4ae' },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    }
+                }
+            }
+        });
+
+        // 2. Evolucion por Capa (Atencion vs MLP)
+        const layerLabels = ['Capa 2', 'Capa 3', 'Capa 4', 'Capa 5', 'Capa 6', 'Capa 7', 'Capa 8'];
+        new Chart(document.getElementById('layerEvolutionChart'), {
+            type: 'line',
+            data: {
+                labels: layerLabels,
+                datasets: [
+                    {
+                        label: 'Norma Atencion',
+                        data: [38, 42, 48, 55, 63, 72, 82],
+                        borderColor: '#2196f3',
+                        backgroundColor: 'rgba(33, 150, 243, 0.2)',
+                        fill: true,
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Norma MLP',
+                        data: [45, 52, 61, 71, 83, 96, 110],
+                        borderColor: '#ff9800',
+                        backgroundColor: 'rgba(255, 152, 0, 0.2)',
+                        fill: true,
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', labels: { color: '#e0e0e0' } }
+                },
+                scales: {
+                    x: { ticks: { color: '#90a4ae' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                    y: {
+                        title: { display: true, text: 'Norma L2', color: '#90a4ae' },
+                        ticks: { color: '#90a4ae' },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    }
+                }
+            }
+        });
+
+        // 3. Normas de Tokens
+        const tokenLabels = ['The', 'quick', 'brown', 'fox', 'jumps', 'over', 'the', 'lazy', 'dog'];
+        const tokenNorms = [127, 45, 42, 44, 41, 43, 40, 42, 41];
+        new Chart(document.getElementById('tokenNormsChart'), {
+            type: 'bar',
+            data: {
+                labels: tokenLabels,
+                datasets: [{
+                    label: 'Norma L2',
+                    data: tokenNorms,
+                    backgroundColor: tokenNorms.map((n, i) => i === 0 ? '#e91e63' : '#2196f3'),
+                    borderColor: tokenNorms.map((n, i) => i === 0 ? '#c2185b' : '#1976d2'),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: { ticks: { color: '#90a4ae' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                    y: {
+                        title: { display: true, text: 'Norma L2', color: '#90a4ae' },
+                        ticks: { color: '#90a4ae' },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    }
+                }
+            }
+        });
+
+        // 4. Histograma de Normas
+        new Chart(document.getElementById('normHistogramChart'), {
+            type: 'bar',
+            data: {
+                labels: ['20-40', '40-60', '60-80', '80-100', '100-120', '120-140'],
+                datasets: [
+                    {
+                        label: 'Posiciones 1-1023',
+                        data: [150, 680, 180, 12, 0, 0],
+                        backgroundColor: 'rgba(33, 150, 243, 0.7)',
+                        borderColor: '#2196f3',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Posicion 0',
+                        data: [0, 0, 0, 5, 45, 78],
+                        backgroundColor: 'rgba(233, 30, 99, 0.7)',
+                        borderColor: '#e91e63',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', labels: { color: '#e0e0e0' } }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Rango de Norma', color: '#90a4ae' },
+                        ticks: { color: '#90a4ae' },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Frecuencia', color: '#90a4ae' },
+                        ticks: { color: '#90a4ae' },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    }
+                }
+            }
+        });
+
+        // 5. PCA por Capa (interactivo)
+        let layerPCAChart;
+        function generateLayerData(layer) {
+            const data = [];
+            const spread = 0.5 + layer * 0.15;
+            const offset = layer * 0.3;
+
+            for (let i = 0; i < 100; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const r = Math.random() * spread;
+                data.push({
+                    x: Math.cos(angle) * r + offset * Math.cos(layer),
+                    y: Math.sin(angle) * r + offset * Math.sin(layer)
+                });
+            }
+            return data;
+        }
+
+        function updateLayerChart(layer) {
+            const data = generateLayerData(layer);
+            const color = `hsl(${200 + layer * 10}, 70%, 50%)`;
+
+            if (layerPCAChart) {
+                layerPCAChart.data.datasets[0].data = data;
+                layerPCAChart.data.datasets[0].backgroundColor = color + '80';
+                layerPCAChart.data.datasets[0].borderColor = color;
+                layerPCAChart.update();
+            }
+        }
+
+        layerPCAChart = new Chart(document.getElementById('layerPCAChart'), {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Estados Latentes',
+                    data: generateLayerData(6),
+                    backgroundColor: 'rgba(79, 195, 247, 0.5)',
+                    borderColor: '#4fc3f7',
+                    pointRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'PC1', color: '#90a4ae' },
+                        ticks: { color: '#90a4ae' },
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        min: -3, max: 5
+                    },
+                    y: {
+                        title: { display: true, text: 'PC2', color: '#90a4ae' },
+                        ticks: { color: '#90a4ae' },
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        min: -3, max: 3
+                    }
+                }
+            }
+        });
+
+        document.getElementById('layerSlider').addEventListener('input', function(e) {
+            const layer = parseInt(e.target.value);
+            document.getElementById('currentLayer').textContent = `Capa ${layer}`;
+            updateLayerChart(layer);
+        });
+
+        // 6. Norma por Capa
+        new Chart(document.getElementById('normByLayerChart'), {
+            type: 'line',
+            data: {
+                labels: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'],
+                datasets: [{
+                    label: 'Norma Promedio',
+                    data: [25, 32, 40, 50, 62, 75, 88, 102, 115, 128, 140, 150],
+                    borderColor: '#4fc3f7',
+                    backgroundColor: 'rgba(79, 195, 247, 0.2)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 6,
+                    pointBackgroundColor: '#4fc3f7'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Capa', color: '#90a4ae' },
+                        ticks: { color: '#90a4ae' },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Norma L2 Promedio', color: '#90a4ae' },
+                        ticks: { color: '#90a4ae' },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    }
+                }
+            }
+        });
+
+        // 7. Varianza Explicada
+        new Chart(document.getElementById('varianceChart'), {
+            type: 'bar',
+            data: {
+                labels: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'],
+                datasets: [
+                    {
+                        label: 'PC1',
+                        data: [45, 42, 38, 35, 33, 31, 30, 29, 28, 27, 26, 25],
+                        backgroundColor: '#4fc3f7'
+                    },
+                    {
+                        label: 'PC2',
+                        data: [25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14],
+                        backgroundColor: '#81d4fa'
+                    },
+                    {
+                        label: 'PC3',
+                        data: [12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12],
+                        backgroundColor: '#b3e5fc'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', labels: { color: '#e0e0e0' } }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Capa', color: '#90a4ae' },
+                        ticks: { color: '#90a4ae' },
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        stacked: true
+                    },
+                    y: {
+                        title: { display: true, text: 'Varianza Explicada (%)', color: '#90a4ae' },
+                        ticks: { color: '#90a4ae' },
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        stacked: true,
+                        max: 100
+                    }
+                }
+            }
+        });
+
+        // =============================================
+        // HELICE 3D CON THREE.JS
+        // =============================================
+        const container = document.getElementById('helix-3d-container');
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0d1117);
+
+        const camera = new THREE.PerspectiveCamera(50, width/height, 0.1, 1000);
+        camera.position.set(4, 3, 5);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(width, height);
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        // Luces
+        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(5, 5, 5);
+        scene.add(dirLight);
+
+        // Ejes
+        scene.add(new THREE.AxesHelper(2));
+
+        // Crear puntos de la helice
+        const geometry = new THREE.BufferGeometry();
+        const positions = [];
+        const colors = [];
+
+        // Centrar datos
+        let sumX = 0, sumY = 0, sumZ = 0;
+        posPCAData.forEach(p => { sumX += p.x; sumY += p.y; sumZ += p.z; });
+        const centerX = sumX / posPCAData.length;
+        const centerY = sumY / posPCAData.length;
+        const centerZ = sumZ / posPCAData.length;
+
+        const scale = 0.8;
+        for (let i = 0; i < posPCAData.length; i++) {
+            const p = posPCAData[i];
+            positions.push(
+                (p.x - centerX) * scale,
+                (p.y - centerY) * scale,
+                (p.z - centerZ) * scale
+            );
+            // Gradiente de color
+            const t = i / posPCAData.length;
+            colors.push(0.3 + t * 0.7, 0.3 + t * 0.4, 0.9 - t * 0.6);
+        }
+
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+        const pointsMaterial = new THREE.PointsMaterial({
+            size: 0.12,
+            vertexColors: true
+        });
+        scene.add(new THREE.Points(geometry, pointsMaterial));
+
+        // Linea conectora
+        const lineGeom = new THREE.BufferGeometry();
+        lineGeom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        const lineMat = new THREE.LineBasicMaterial({ color: 0x666666, opacity: 0.5, transparent: true });
+        scene.add(new THREE.Line(lineGeom, lineMat));
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            const w = container.clientWidth;
+            const h = container.clientHeight;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+        });
+    </script>
+</body>
+</html>
