@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ejemplo 2: Comparacion Fox vs Dog</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        h1 { color: #4fc3f7; font-size: 1.8em; margin-bottom: 10px; }
+        h2 { color: #81c784; font-size: 1.3em; margin: 20px 0 10px 0; }
+        .subtitle { color: #90a4ae; font-size: 1em; margin-bottom: 10px; }
+        .nav-link {
+            display: inline-block;
+            padding: 10px 20px;
+            background: rgba(79, 195, 247, 0.2);
+            border: 1px solid #4fc3f7;
+            border-radius: 8px;
+            color: #4fc3f7;
+            text-decoration: none;
+            margin: 5px;
+        }
+        .nav-link:hover { background: rgba(79, 195, 247, 0.3); }
+        .sentences-box {
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .sentence {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-size: 1.1em;
+        }
+        .sentence-1 {
+            background: rgba(255, 152, 0, 0.2);
+            border-left: 4px solid #ff9800;
+        }
+        .sentence-2 {
+            background: rgba(33, 150, 243, 0.2);
+            border-left: 4px solid #2196f3;
+        }
+        .highlight-fox { color: #ff9800; font-weight: bold; }
+        .highlight-dog { color: #2196f3; font-weight: bold; }
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        @media (max-width: 900px) {
+            .charts-container { grid-template-columns: 1fr; }
+        }
+        .chart-box {
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            padding: 15px;
+        }
+        .chart-title {
+            color: #4fc3f7;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .canvas-container {
+            width: 100%;
+            height: 400px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        .explanation {
+            background: rgba(129, 199, 132, 0.1);
+            border-left: 4px solid #81c784;
+            padding: 20px;
+            border-radius: 0 12px 12px 0;
+            margin: 20px 0;
+        }
+        .explanation h3 { color: #81c784; margin-bottom: 10px; }
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        .token-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 5px;
+            margin: 15px 0;
+        }
+        .token-cell {
+            padding: 8px 4px;
+            text-align: center;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+        .token-header { background: rgba(255,255,255,0.1); color: #90a4ae; }
+        .token-s1 { background: rgba(255, 152, 0, 0.3); }
+        .token-s2 { background: rgba(33, 150, 243, 0.3); }
+        .token-diff { border: 2px solid #f44336; }
+        .stats-row {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .stat-item {
+            text-align: center;
+            background: rgba(255,255,255,0.05);
+            padding: 15px 25px;
+            border-radius: 8px;
+        }
+        .stat-value { font-size: 1.5em; color: #4fc3f7; font-weight: bold; }
+        .stat-label { color: #90a4ae; font-size: 0.9em; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Ejemplo 2: Fox vs Dog - Intercambio Semantico</h1>
+        <p class="subtitle">Como GPT-2 procesa frases con significado invertido</p>
+        <div style="margin-top: 15px;">
+            <a href="../../visualizacion_completa.html" class="nav-link">Visualizacion Base</a>
+            <a href="../ejemplo_1/ejemplo_paper_1.html" class="nav-link">Ver Ejemplo 1</a>
+            <a href="../../helice_real_gpt2.html" class="nav-link">Helice Real</a>
+        </div>
+    </div>
+
+    <div class="sentences-box">
+        <h2>Frases Comparadas</h2>
+        <div class="sentence sentence-1">
+            <strong>Frase 1:</strong> The quick brown <span class="highlight-fox">fox</span> jumps over the lazy <span class="highlight-dog">dog</span>
+        </div>
+        <div class="sentence sentence-2">
+            <strong>Frase 2:</strong> The quick brown <span class="highlight-dog">dog</span> jumps over the lazy <span class="highlight-fox">fox</span>
+        </div>
+        <p style="margin-top: 15px; color: #90a4ae;">
+            La unica diferencia: intercambiamos <span class="highlight-fox">fox</span> y <span class="highlight-dog">dog</span>.
+            El que salta ya no es el zorro, sino el perro.
+        </p>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-item">
+            <div class="stat-value">13</div>
+            <div class="stat-label">Capas (incl. embedding)</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value">9</div>
+            <div class="stat-label">Tokens por frase</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value">98.99%</div>
+            <div class="stat-label">Varianza PCA (capas)</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value">96.62%</div>
+            <div class="stat-label">Varianza PCA (tokens)</div>
+        </div>
+    </div>
+
+    <h2>Tokenizacion</h2>
+    <div class="token-grid">
+        <div class="token-cell token-header">Pos</div>
+        <div class="token-cell token-header">0</div>
+        <div class="token-cell token-header">1</div>
+        <div class="token-cell token-header">2</div>
+        <div class="token-cell token-header">3</div>
+        <div class="token-cell token-header">4</div>
+        <div class="token-cell token-header">5</div>
+        <div class="token-cell token-header">6</div>
+        <div class="token-cell token-header">7</div>
+
+        <div class="token-cell token-header">Frase 1</div>
+        <div class="token-cell token-s1">The</div>
+        <div class="token-cell token-s1">quick</div>
+        <div class="token-cell token-s1">brown</div>
+        <div class="token-cell token-s1 token-diff">fox</div>
+        <div class="token-cell token-s1">jumps</div>
+        <div class="token-cell token-s1">over</div>
+        <div class="token-cell token-s1">the</div>
+        <div class="token-cell token-s1">lazy</div>
+
+        <div class="token-cell token-header">Frase 2</div>
+        <div class="token-cell token-s2">The</div>
+        <div class="token-cell token-s2">quick</div>
+        <div class="token-cell token-s2">brown</div>
+        <div class="token-cell token-s2 token-diff">dog</div>
+        <div class="token-cell token-s2">jumps</div>
+        <div class="token-cell token-s2">over</div>
+        <div class="token-cell token-s2">the</div>
+        <div class="token-cell token-s2">lazy</div>
+    </div>
+    <div class="token-grid" style="grid-template-columns: repeat(2, 1fr); max-width: 200px;">
+        <div class="token-cell token-header">8</div>
+        <div class="token-cell token-header"></div>
+        <div class="token-cell token-s1 token-diff">dog</div>
+        <div class="token-cell token-s2 token-diff">fox</div>
+    </div>
+    <p style="color: #f44336; margin: 10px 0;">Los tokens con borde rojo son los que difieren entre las frases.</p>
+
+    <h2>Trayectoria a traves de las Capas</h2>
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-color" style="background: #ff9800;"></div>
+            <span>Frase 1 (fox jumps over dog)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #2196f3;"></div>
+            <span>Frase 2 (dog jumps over fox)</span>
+        </div>
+    </div>
+
+    <div class="charts-container">
+        <div class="chart-box">
+            <div class="chart-title">Frase 1: Fox salta sobre Dog</div>
+            <div class="canvas-container" id="chart1"></div>
+        </div>
+        <div class="chart-box">
+            <div class="chart-title">Frase 2: Dog salta sobre Fox</div>
+            <div class="canvas-container" id="chart2"></div>
+        </div>
+        <div class="chart-box full-width">
+            <div class="chart-title">Ambas Trayectorias Superpuestas</div>
+            <div class="canvas-container" id="chartCombined" style="height: 500px;"></div>
+        </div>
+    </div>
+
+    <div class="explanation">
+        <h3>Que estamos viendo?</h3>
+        <p>Cada punto en la trayectoria representa el estado promedio de todos los tokens despues de pasar por una capa del transformer.</p>
+        <ul style="margin: 15px 0; padding-left: 20px;">
+            <li><strong>Capa 0 (Embedding):</strong> Ambas frases comienzan en el MISMO punto porque los embeddings iniciales son identicos</li>
+            <li><strong>Capas 1-3:</strong> Las trayectorias comienzan a diverger sutilmente</li>
+            <li><strong>Capas 4-10:</strong> La divergencia se hace mas pronunciada a medida que el modelo "comprende" la diferencia semantica</li>
+            <li><strong>Capas 11-12:</strong> Las trayectorias convergen parcialmente hacia una representacion de salida similar</li>
+        </ul>
+        <p><strong>Insight clave:</strong> Aunque las frases tienen las mismas palabras, el intercambio de roles (quien salta y quien es saltado) crea trayectorias distintas en el espacio latente.</p>
+    </div>
+
+    <h2>Posiciones de Tokens (Ultima Capa)</h2>
+    <div class="charts-container">
+        <div class="chart-box full-width">
+            <div class="chart-title">Comparacion de Tokens en el Espacio Latente</div>
+            <div class="canvas-container" id="chartTokens" style="height: 500px;"></div>
+        </div>
+    </div>
+
+    <div class="explanation">
+        <h3>Tokens en el Espacio Latente</h3>
+        <p>Este grafico muestra donde termina cada token despues de pasar por todas las capas:</p>
+        <ul style="margin: 15px 0; padding-left: 20px;">
+            <li>Los tokens identicos (The, quick, brown, jumps, over, the, lazy) estan en posiciones <strong>similares pero no identicas</strong></li>
+            <li>Los tokens intercambiados (fox/dog) estan en posiciones <strong>muy diferentes</strong></li>
+            <li>Esto demuestra que el contexto (quien hace la accion) afecta la representacion final</li>
+        </ul>
+    </div>
+
+    <script>
+        // Datos extraidos de GPT-2
+        const data = {
+            sentence_1: {
+                layer_trajectory: [
+                    {x: -264.326, y: -38.0, z: 21.798},
+                    {x: -231.489, y: -37.058, z: 32.237},
+                    {x: -216.602, y: -45.144, z: 26.145},
+                    {x: 40.025, y: -26.981, z: -23.12},
+                    {x: 61.998, y: -25.722, z: -26.483},
+                    {x: 82.956, y: -23.327, z: -28.679},
+                    {x: 97.829, y: -19.53, z: -27.474},
+                    {x: 110.577, y: -15.186, z: -21.405},
+                    {x: 123.611, y: -8.084, z: -10.556},
+                    {x: 136.538, y: 1.864, z: 4.573},
+                    {x: 152.631, y: 17.724, z: 26.833},
+                    {x: 191.153, y: 83.275, z: 64.654},
+                    {x: -282.779, y: 135.44, z: -42.996}
+                ],
+                token_positions: [
+                    {x: -112.197, y: -13.28, z: -11.951},
+                    {x: -36.039, y: 9.378, z: 5.347},
+                    {x: -22.444, y: 23.935, z: 9.308},
+                    {x: 25.051, y: 32.49, z: 3.561},
+                    {x: 84.237, y: -16.064, z: -15.732},
+                    {x: -0.412, y: -28.21, z: -0.74},
+                    {x: 28.17, y: -23.315, z: 11.803},
+                    {x: 14.139, y: -5.057, z: 8.638},
+                    {x: 17.361, y: 11.287, z: -16.655}
+                ],
+                tokens: ["The", "quick", "brown", "fox", "jumps", "over", "the", "lazy", "dog"]
+            },
+            sentence_2: {
+                layer_trajectory: [
+                    {x: -264.326, y: -38.0, z: 21.798},
+                    {x: -231.614, y: -37.111, z: 32.296},
+                    {x: -216.728, y: -45.205, z: 26.03},
+                    {x: 39.426, y: -27.149, z: -23.08},
+                    {x: 61.256, y: -25.97, z: -26.615},
+                    {x: 81.582, y: -23.807, z: -28.914},
+                    {x: 95.914, y: -20.246, z: -27.976},
+                    {x: 109.158, y: -15.461, z: -21.202},
+                    {x: 122.59, y: -8.159, z: -9.376},
+                    {x: 137.153, y: 2.523, z: 6.859},
+                    {x: 153.804, y: 18.596, z: 29.596},
+                    {x: 192.546, y: 84.652, z: 68.32},
+                    {x: -282.879, y: 136.066, z: -43.264}
+                ],
+                token_positions: [
+                    {x: -112.197, y: -13.28, z: -11.951},
+                    {x: -36.039, y: 9.378, z: 5.347},
+                    {x: -22.444, y: 23.935, z: 9.308},
+                    {x: 8.35, y: 20.768, z: -3.576},
+                    {x: 80.405, y: -8.305, z: -12.8},
+                    {x: 3.091, y: -29.781, z: 6.84},
+                    {x: 25.988, y: -22.754, z: 13.401},
+                    {x: 20.707, y: -1.362, z: 8.377},
+                    {x: 34.272, y: 30.235, z: -8.524}
+                ],
+                tokens: ["The", "quick", "brown", "dog", "jumps", "over", "the", "lazy", "fox"]
+            }
+        };
+
+        // Normalizar datos para visualizacion
+        function normalizeData(points, scale = 3) {
+            const allX = points.map(p => p.x);
+            const allY = points.map(p => p.y);
+            const allZ = points.map(p => p.z);
+
+            const minX = Math.min(...allX), maxX = Math.max(...allX);
+            const minY = Math.min(...allY), maxY = Math.max(...allY);
+            const minZ = Math.min(...allZ), maxZ = Math.max(...allZ);
+
+            const rangeX = maxX - minX || 1;
+            const rangeY = maxY - minY || 1;
+            const rangeZ = maxZ - minZ || 1;
+            const maxRange = Math.max(rangeX, rangeY, rangeZ);
+
+            return points.map(p => ({
+                x: ((p.x - minX) / maxRange - 0.5) * scale * 2,
+                y: ((p.y - minY) / maxRange - 0.5) * scale * 2,
+                z: ((p.z - minZ) / maxRange - 0.5) * scale * 2
+            }));
+        }
+
+        // Normalizar todos los datos juntos
+        const allLayerPoints = [...data.sentence_1.layer_trajectory, ...data.sentence_2.layer_trajectory];
+        const normalizedAll = normalizeData(allLayerPoints, 3);
+        const norm1_layers = normalizedAll.slice(0, 13);
+        const norm2_layers = normalizedAll.slice(13);
+
+        const allTokenPoints = [...data.sentence_1.token_positions, ...data.sentence_2.token_positions];
+        const normalizedTokens = normalizeData(allTokenPoints, 3);
+        const norm1_tokens = normalizedTokens.slice(0, 9);
+        const norm2_tokens = normalizedTokens.slice(9);
+
+        // Crear escena 3D
+        function create3DScene(containerId, trajectories, options = {}) {
+            const container = document.getElementById(containerId);
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a2e);
+
+            const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
+            camera.position.set(5, 4, 6);
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(width, height);
+            container.appendChild(renderer.domElement);
+
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.autoRotate = options.autoRotate || false;
+            controls.autoRotateSpeed = 1;
+
+            // Ejes
+            const axesHelper = new THREE.AxesHelper(4);
+            scene.add(axesHelper);
+
+            // Dibujar trayectorias
+            trajectories.forEach(({ points, color, showLabels, labels }) => {
+                // Linea
+                const lineGeometry = new THREE.BufferGeometry();
+                const positions = [];
+                points.forEach(p => positions.push(p.x, p.y, p.z));
+                lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+
+                const lineMaterial = new THREE.LineBasicMaterial({ color: color, linewidth: 2 });
+                const line = new THREE.Line(lineGeometry, lineMaterial);
+                scene.add(line);
+
+                // Puntos
+                points.forEach((p, i) => {
+                    const sphereGeometry = new THREE.SphereGeometry(0.08, 16, 16);
+                    const sphereMaterial = new THREE.MeshBasicMaterial({ color: color });
+                    const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+                    sphere.position.set(p.x, p.y, p.z);
+                    scene.add(sphere);
+
+                    // Marcar inicio y fin
+                    if (i === 0 || i === points.length - 1) {
+                        const markerGeometry = new THREE.SphereGeometry(0.15, 16, 16);
+                        const markerMaterial = new THREE.MeshBasicMaterial({
+                            color: i === 0 ? 0x00ff00 : 0xff0000
+                        });
+                        const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+                        marker.position.set(p.x, p.y, p.z);
+                        scene.add(marker);
+                    }
+                });
+            });
+
+            // Animacion
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update();
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            // Resize
+            window.addEventListener('resize', () => {
+                const w = container.clientWidth;
+                const h = container.clientHeight;
+                camera.aspect = w / h;
+                camera.updateProjectionMatrix();
+                renderer.setSize(w, h);
+            });
+        }
+
+        // Crear escena de tokens
+        function createTokenScene(containerId) {
+            const container = document.getElementById(containerId);
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a2e);
+
+            const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
+            camera.position.set(5, 4, 6);
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(width, height);
+            container.appendChild(renderer.domElement);
+
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 0.5;
+
+            // Ejes
+            const axesHelper = new THREE.AxesHelper(4);
+            scene.add(axesHelper);
+
+            // Tokens frase 1
+            norm1_tokens.forEach((p, i) => {
+                const geometry = new THREE.SphereGeometry(0.12, 16, 16);
+                const isDiff = (i === 3 || i === 8);
+                const material = new THREE.MeshBasicMaterial({
+                    color: isDiff ? 0xff5722 : 0xff9800
+                });
+                const sphere = new THREE.Mesh(geometry, material);
+                sphere.position.set(p.x, p.y, p.z);
+                scene.add(sphere);
+            });
+
+            // Tokens frase 2
+            norm2_tokens.forEach((p, i) => {
+                const geometry = new THREE.SphereGeometry(0.12, 16, 16);
+                const isDiff = (i === 3 || i === 8);
+                const material = new THREE.MeshBasicMaterial({
+                    color: isDiff ? 0x1976d2 : 0x2196f3
+                });
+                const sphere = new THREE.Mesh(geometry, material);
+                sphere.position.set(p.x, p.y, p.z);
+                scene.add(sphere);
+            });
+
+            // Lineas conectando tokens correspondientes
+            for (let i = 0; i < 9; i++) {
+                const geometry = new THREE.BufferGeometry();
+                const positions = [
+                    norm1_tokens[i].x, norm1_tokens[i].y, norm1_tokens[i].z,
+                    norm2_tokens[i].x, norm2_tokens[i].y, norm2_tokens[i].z
+                ];
+                geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+
+                const isDiff = (i === 3 || i === 8);
+                const material = new THREE.LineDashedMaterial({
+                    color: isDiff ? 0xf44336 : 0x666666,
+                    dashSize: 0.1,
+                    gapSize: 0.05
+                });
+                const line = new THREE.Line(geometry, material);
+                line.computeLineDistances();
+                scene.add(line);
+            }
+
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update();
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            window.addEventListener('resize', () => {
+                const w = container.clientWidth;
+                const h = container.clientHeight;
+                camera.aspect = w / h;
+                camera.updateProjectionMatrix();
+                renderer.setSize(w, h);
+            });
+        }
+
+        // Crear graficos
+        create3DScene('chart1', [
+            { points: norm1_layers, color: 0xff9800 }
+        ]);
+
+        create3DScene('chart2', [
+            { points: norm2_layers, color: 0x2196f3 }
+        ]);
+
+        create3DScene('chartCombined', [
+            { points: norm1_layers, color: 0xff9800 },
+            { points: norm2_layers, color: 0x2196f3 }
+        ], { autoRotate: true });
+
+        createTokenScene('chartTokens');
+    </script>
+</body>
+</html>
