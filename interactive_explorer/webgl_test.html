@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test WebGL</title>
+    <style>
+        body { margin: 20px; font-family: sans-serif; background: #1a1a2e; color: white; }
+        canvas { border: 2px solid #4fc3f7; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .ok { background: #2e7d32; }
+        .error { background: #c62828; }
+    </style>
+</head>
+<body>
+    <h1>Test de WebGL y Three.js</h1>
+
+    <h2>1. Test WebGL Nativo</h2>
+    <div id="webgl-status" class="status">Probando...</div>
+    <canvas id="webgl-canvas" width="400" height="200"></canvas>
+
+    <h2>2. Test Three.js CDN</h2>
+    <div id="threejs-status" class="status">Cargando Three.js...</div>
+    <div id="threejs-container" style="width:400px; height:200px; border: 2px solid #4fc3f7;"></div>
+
+    <script>
+        // Test 1: WebGL nativo
+        const canvas = document.getElementById('webgl-canvas');
+        const webglStatus = document.getElementById('webgl-status');
+
+        try {
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            if (gl) {
+                webglStatus.textContent = 'WebGL OK - Renderizando triángulo...';
+                webglStatus.className = 'status ok';
+
+                // Dibujar algo simple
+                gl.clearColor(0.1, 0.1, 0.2, 1.0);
+                gl.clear(gl.COLOR_BUFFER_BIT);
+
+                // Triángulo simple
+                const vsSource = `
+                    attribute vec4 aPosition;
+                    void main() { gl_Position = aPosition; }
+                `;
+                const fsSource = `
+                    void main() { gl_FragColor = vec4(0.3, 0.8, 1.0, 1.0); }
+                `;
+
+                function createShader(gl, type, source) {
+                    const shader = gl.createShader(type);
+                    gl.shaderSource(shader, source);
+                    gl.compileShader(shader);
+                    return shader;
+                }
+
+                const vs = createShader(gl, gl.VERTEX_SHADER, vsSource);
+                const fs = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+
+                const program = gl.createProgram();
+                gl.attachShader(program, vs);
+                gl.attachShader(program, fs);
+                gl.linkProgram(program);
+                gl.useProgram(program);
+
+                const positions = new Float32Array([0, 0.5, -0.5, -0.5, 0.5, -0.5]);
+                const buffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+                gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+
+                const aPosition = gl.getAttribLocation(program, 'aPosition');
+                gl.enableVertexAttribArray(aPosition);
+                gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+
+                gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+                webglStatus.textContent = 'WebGL OK - Triángulo renderizado correctamente';
+            } else {
+                webglStatus.textContent = 'ERROR: WebGL no disponible';
+                webglStatus.className = 'status error';
+            }
+        } catch (e) {
+            webglStatus.textContent = 'ERROR WebGL: ' + e.message;
+            webglStatus.className = 'status error';
+        }
+    </script>
+
+    <!-- Three.js test -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const threejsStatus = document.getElementById('threejs-status');
+        const container = document.getElementById('threejs-container');
+
+        try {
+            if (typeof THREE === 'undefined') {
+                threejsStatus.textContent = 'ERROR: Three.js no se cargó del CDN';
+                threejsStatus.className = 'status error';
+            } else {
+                threejsStatus.textContent = 'Three.js cargado (r' + THREE.REVISION + ') - Renderizando cubo...';
+
+                const scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x1a1a2e);
+
+                const camera = new THREE.PerspectiveCamera(75, 2, 0.1, 1000);
+                camera.position.z = 3;
+
+                const renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(400, 200);
+                container.appendChild(renderer.domElement);
+
+                // Cubo con color
+                const geometry = new THREE.BoxGeometry(1, 1, 1);
+                const material = new THREE.MeshBasicMaterial({
+                    color: 0x4fc3f7,
+                    wireframe: true
+                });
+                const cube = new THREE.Mesh(geometry, material);
+                scene.add(cube);
+
+                // Renderizar una vez
+                renderer.render(scene, camera);
+
+                // Animar
+                function animate() {
+                    requestAnimationFrame(animate);
+                    cube.rotation.x += 0.01;
+                    cube.rotation.y += 0.01;
+                    renderer.render(scene, camera);
+                }
+                animate();
+
+                threejsStatus.textContent = 'Three.js OK (r' + THREE.REVISION + ') - Cubo renderizado';
+                threejsStatus.className = 'status ok';
+            }
+        } catch (e) {
+            threejsStatus.textContent = 'ERROR Three.js: ' + e.message;
+            threejsStatus.className = 'status error';
+            console.error(e);
+        }
+    </script>
+</body>
+</html>

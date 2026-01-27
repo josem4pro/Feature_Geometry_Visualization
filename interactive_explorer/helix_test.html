@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Hélice 3D - Embeddings Posicionales GPT-2</title>
+    <style>
+        body { margin: 0; background: #1a1a2e; overflow: hidden; }
+        #container { width: 100vw; height: 100vh; }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #4fc3f7;
+            font-family: sans-serif;
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        Hélice 3D - Embeddings Posicionales<br>
+        Arrastra para rotar | Scroll para zoom
+    </div>
+    <div id="container"></div>
+
+    <!-- Three.js desde CDN (versión global) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        // Datos de la hélice (30 puntos)
+        const posPCAData = [
+            {"x": 2.36, "y": -1.31, "z": -5.93},
+            {"x": 0.86, "y": -1.67, "z": -2.89},
+            {"x": 0.62, "y": -1.53, "z": -2.75},
+            {"x": 0.57, "y": -1.59, "z": -2.64},
+            {"x": 0.50, "y": -1.71, "z": -2.47},
+            {"x": 0.45, "y": -1.83, "z": -2.29},
+            {"x": 0.43, "y": -1.94, "z": -2.12},
+            {"x": 0.43, "y": -2.04, "z": -1.96},
+            {"x": 0.45, "y": -2.13, "z": -1.79},
+            {"x": 0.48, "y": -2.23, "z": -1.63},
+            {"x": 0.53, "y": -2.29, "z": -1.50},
+            {"x": 0.58, "y": -2.36, "z": -1.37},
+            {"x": 0.63, "y": -2.41, "z": -1.23},
+            {"x": 0.68, "y": -2.44, "z": -1.11},
+            {"x": 0.75, "y": -2.48, "z": -0.99},
+            {"x": 0.82, "y": -2.50, "z": -0.87},
+            {"x": 0.89, "y": -2.52, "z": -0.77},
+            {"x": 0.96, "y": -2.53, "z": -0.66},
+            {"x": 1.04, "y": -2.54, "z": -0.56},
+            {"x": 1.11, "y": -2.53, "z": -0.47},
+            {"x": 1.19, "y": -2.51, "z": -0.37},
+            {"x": 1.26, "y": -2.50, "z": -0.30},
+            {"x": 1.33, "y": -2.46, "z": -0.22},
+            {"x": 1.41, "y": -2.44, "z": -0.14},
+            {"x": 1.47, "y": -2.41, "z": -0.08},
+            {"x": 1.55, "y": -2.37, "z": -0.01},
+            {"x": 1.61, "y": -2.33, "z": 0.05},
+            {"x": 1.68, "y": -2.29, "z": 0.11},
+            {"x": 1.74, "y": -2.25, "z": 0.16},
+            {"x": 1.81, "y": -2.20, "z": 0.21}
+        ];
+
+        // Setup básico
+        const container = document.getElementById('container');
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a2e);
+
+        const camera = new THREE.PerspectiveCamera(60, width/height, 0.1, 1000);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(width, height);
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        // Calcular centro y bounds de los datos
+        let minX = Infinity, maxX = -Infinity;
+        let minY = Infinity, maxY = -Infinity;
+        let minZ = Infinity, maxZ = -Infinity;
+
+        for (const p of posPCAData) {
+            minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+            minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+            minZ = Math.min(minZ, p.z); maxZ = Math.max(maxZ, p.z);
+        }
+
+        const centerX = (minX + maxX) / 2;
+        const centerY = (minY + maxY) / 2;
+        const centerZ = (minZ + maxZ) / 2;
+        const maxRange = Math.max(maxX - minX, maxY - minY, maxZ - minZ);
+
+        console.log('Centro:', centerX, centerY, centerZ);
+        console.log('Rango máximo:', maxRange);
+
+        // Crear puntos (centrados en origen)
+        const positions = [];
+        const colors = [];
+
+        for (let i = 0; i < posPCAData.length; i++) {
+            // Centrar los datos en el origen
+            positions.push(
+                posPCAData[i].x - centerX,
+                posPCAData[i].y - centerY,
+                posPCAData[i].z - centerZ
+            );
+            // Gradiente de color: azul -> cyan -> amarillo
+            const t = i / posPCAData.length;
+            colors.push(
+                0.2 + t * 0.8,      // R: 0.2 -> 1.0
+                0.6 + t * 0.4,      // G: 0.6 -> 1.0
+                1.0 - t * 0.7       // B: 1.0 -> 0.3
+            );
+        }
+
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+        // Puntos grandes y visibles
+        const material = new THREE.PointsMaterial({
+            size: 0.25,
+            vertexColors: true,
+            sizeAttenuation: true
+        });
+
+        const points = new THREE.Points(geometry, material);
+        scene.add(points);
+
+        // Línea conectando los puntos
+        const lineGeom = new THREE.BufferGeometry();
+        lineGeom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        const lineMat = new THREE.LineBasicMaterial({
+            color: 0x88aaff,
+            linewidth: 2
+        });
+        const line = new THREE.Line(lineGeom, lineMat);
+        scene.add(line);
+
+        // Ejes de referencia (más grandes)
+        const axes = new THREE.AxesHelper(maxRange);
+        scene.add(axes);
+
+        // Posicionar cámara mirando al centro
+        camera.position.set(maxRange * 1.5, maxRange * 1.5, maxRange * 1.5);
+        camera.lookAt(0, 0, 0);
+        controls.target.set(0, 0, 0);
+
+        // Luz
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        scene.add(ambientLight);
+
+        // Animación
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        console.log('Three.js cargado correctamente!');
+        console.log('Puntos renderizados:', posPCAData.length);
+    </script>
+</body>
+</html>

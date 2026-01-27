@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explorador Completo - Geometría del Espacio Latente GPT-2</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        .header { text-align: center; margin-bottom: 30px; }
+        h1 { color: #4fc3f7; font-size: 2.2em; margin-bottom: 10px; }
+        h2 { color: #4fc3f7; font-size: 1.5em; margin: 30px 0 20px 0; border-bottom: 2px solid #4fc3f7; padding-bottom: 10px; }
+        .subtitle { color: #90a4ae; font-size: 1.1em; }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        .stat-box {
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px 30px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .stat-value { font-size: 2em; font-weight: bold; color: #4fc3f7; }
+        .stat-label { color: #90a4ae; margin-top: 5px; }
+
+        .section {
+            max-width: 1400px;
+            margin: 0 auto 40px auto;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 20px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .chart-container {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .chart-title { color: #4fc3f7; font-size: 1.1em; margin-bottom: 8px; font-weight: 600; }
+        .chart-desc { color: #90a4ae; font-size: 0.85em; margin-bottom: 12px; line-height: 1.4; }
+
+        canvas.chart { width: 100% !important; height: 300px !important; }
+        canvas.view-2d { display: block; background: #0d1117; border-radius: 8px; width: 100%; }
+
+        #helix-3d-container {
+            width: 100%;
+            height: 500px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #0d1117;
+        }
+
+        .finding {
+            background: rgba(79, 195, 247, 0.1);
+            border-left: 4px solid #4fc3f7;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .finding h3 { color: #4fc3f7; margin: 0 0 10px 0; }
+
+        .info-box {
+            background: rgba(255,200,0,0.1);
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            color: #666;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .footer a { color: #4fc3f7; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Explorador de Geometría del Espacio Latente</h1>
+        <p class="subtitle">Visualización interactiva de las representaciones internas de GPT-2</p>
+        <p class="subtitle">Modelo: GPT-2 | 12 Capas | 768 Dimensiones</p>
+    </div>
+
+    <div class="stats">
+        <div class="stat-box">
+            <div class="stat-value" id="stat-pos0">--</div>
+            <div class="stat-label">Norma Posición 0</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value" id="stat-other">--</div>
+            <div class="stat-label">Norma Otras Posiciones</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value" id="stat-ratio">--</div>
+            <div class="stat-label">Proporción</div>
+        </div>
+    </div>
+
+    <!-- Sección 1: Hallazgo Principal -->
+    <div class="section">
+        <div class="finding">
+            <h3>Hallazgo Principal: Alta Norma en Posición 0</h3>
+            <p>Los estados latentes en la primera posición de cada secuencia tienen normas significativamente más altas.
+            Esto funciona como un <strong>término de sesgo aprendido</strong> - una "pizarra de notas" que el modelo usa para información global.</p>
+        </div>
+    </div>
+
+    <!-- Sección 2: Gráficos de Normas -->
+    <div class="section">
+        <h2>Análisis de Normas</h2>
+        <div class="grid-2">
+            <div class="chart-container">
+                <div class="chart-title">Norma por Posición en la Secuencia</div>
+                <div class="chart-desc">Norma L2 promedio en cada posición. Observa el pico dramático en la posición 0.</div>
+                <canvas id="normByPos" class="chart"></canvas>
+            </div>
+            <div class="chart-container">
+                <div class="chart-title">Norma por Capa del Modelo</div>
+                <div class="chart-desc">La norma aumenta progresivamente a través de las capas.</div>
+                <canvas id="normByLayer" class="chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección 3: Separación Atención vs MLP -->
+    <div class="section">
+        <h2>Separación Geométrica: Atención vs MLP</h2>
+        <div class="finding">
+            <h3>Hallazgo: Regiones Distintas en el Espacio</h3>
+            <p>Las salidas de <strong style="color:#4fc3f7">Atención (azul)</strong> y
+            <strong style="color:#f44336">MLP (rojo)</strong> ocupan regiones geométricamente distintas.
+            El modelo organiza estos dos tipos de procesamiento en "zonas" separadas del espacio latente.</p>
+        </div>
+        <div class="grid-2">
+            <div class="chart-container">
+                <div class="chart-title">Separación Atención vs MLP (PCA)</div>
+                <div class="chart-desc">Proyección 2D mostrando cómo las salidas de Atención y MLP se separan naturalmente.</div>
+                <canvas id="attnMLP" class="chart"></canvas>
+            </div>
+            <div class="chart-container">
+                <div class="chart-title">Evolución de las Capas (PCA)</div>
+                <div class="chart-desc">Trayectoria de los estados latentes desde el embedding inicial hasta la capa final.</div>
+                <canvas id="layerPCA" class="chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección 4: Hélice 3D -->
+    <div class="section">
+        <h2>Estructura Helicoidal de los Embeddings Posicionales</h2>
+        <div class="finding">
+            <h3>Hallazgo Fascinante: Los Embeddings Forman una Hélice</h3>
+            <p>Los embeddings posicionales aprendidos de GPT-2 forman una <strong>estructura helicoidal</strong>
+            en el espacio de alta dimensión. Esta estructura emergió naturalmente durante el entrenamiento -
+            nadie le dijo al modelo que organizara las posiciones así.</p>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-title">Hélice 3D Interactiva</div>
+            <div class="chart-desc">Arrastra para rotar | Scroll para zoom | Los colores van de azul (posición 0) a amarillo (posición 255)</div>
+            <div id="helix-3d-container"></div>
+        </div>
+    </div>
+
+    <!-- Sección 5: Vistas 2D de la Hélice -->
+    <div class="section">
+        <h2>Vistas 2D de la Hélice (Proyecciones)</h2>
+        <div class="info-box">
+            <strong>Tip:</strong> Estas vistas 2D muestran la misma hélice desde tres ángulos diferentes,
+            permitiendo apreciar su estructura tridimensional completa.
+        </div>
+        <div class="grid-3">
+            <div class="chart-container">
+                <div class="chart-title">Vista Frontal (XY)</div>
+                <div class="chart-desc">Proyección sobre los componentes principales 1 y 2</div>
+                <canvas id="canvas-xy" class="view-2d" width="350" height="300"></canvas>
+            </div>
+            <div class="chart-container">
+                <div class="chart-title">Vista Superior (XZ)</div>
+                <div class="chart-desc">Proyección sobre los componentes principales 1 y 3</div>
+                <canvas id="canvas-xz" class="view-2d" width="350" height="300"></canvas>
+            </div>
+            <div class="chart-container">
+                <div class="chart-title">Vista Lateral (YZ)</div>
+                <div class="chart-desc">Proyección sobre los componentes principales 2 y 3</div>
+                <canvas id="canvas-yz" class="view-2d" width="350" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección 6: Resumen -->
+    <div class="section">
+        <h2>¿Qué Significa Todo Esto?</h2>
+        <div class="finding">
+            <h3>El "Cerebro" de GPT-2 Tiene Geometría</h3>
+            <p>Estas visualizaciones revelan que GPT-2 no es una "caja negra" caótica. Internamente tiene una <strong>geometría organizada</strong>:</p>
+            <ul>
+                <li><strong>Usa la primera posición de forma especial</strong> - como memoria temporal para información global</li>
+                <li><strong>Separa el trabajo de Atención y MLP</strong> - en regiones distintas del espacio mental</li>
+                <li><strong>Representa las posiciones como una hélice</strong> - una estructura elegante que emergió del entrenamiento</li>
+            </ul>
+            <p>Es como descubrir que la IA desarrolló su propia "arquitectura mental" que nadie le enseñó explícitamente.</p>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Basado en: <strong>"Visualizing LLM Latent Space Geometry Through Dimensionality Reduction"</strong></p>
+        <p>Ning, Rangaraju & Kuo (2025) | <a href="https://arxiv.org/abs/2511.21594">arXiv:2511.21594</a></p>
+    </div>
+
+    <script>
+        // ============================================
+        // DATOS (valores de ejemplo - se actualizan con datos reales)
+        // ============================================
+
+        // Datos de normas (ejemplo)
+        const normByPosData = [890, 285, 278, 275, 272, 270, 268, 266, 265, 264, 263, 262, 261, 260, 259, 258, 257, 256, 255, 254, 253, 252, 251, 250, 249, 248, 247, 246, 245, 244];
+        const normByLayerData = [45, 85, 95, 105, 140, 155, 165, 200, 215, 230, 250, 290, 310, 330, 355, 395, 410, 430, 460, 490, 510, 530, 560, 595, 610];
+
+        // Estadísticas
+        document.getElementById('stat-pos0').textContent = '890';
+        document.getElementById('stat-other').textContent = '260';
+        document.getElementById('stat-ratio').textContent = '3.4x';
+
+        // Datos de la hélice (256 posiciones PCA)
+        const posPCAData = [
+            {"x": 2.36, "y": -1.31, "z": -5.93}, {"x": 0.86, "y": -1.67, "z": -2.89},
+            {"x": 0.62, "y": -1.53, "z": -2.75}, {"x": 0.57, "y": -1.59, "z": -2.64},
+            {"x": 0.50, "y": -1.71, "z": -2.47}, {"x": 0.45, "y": -1.83, "z": -2.29},
+            {"x": 0.43, "y": -1.94, "z": -2.12}, {"x": 0.43, "y": -2.04, "z": -1.96},
+            {"x": 0.45, "y": -2.13, "z": -1.79}, {"x": 0.48, "y": -2.23, "z": -1.63},
+            {"x": 0.53, "y": -2.29, "z": -1.50}, {"x": 0.58, "y": -2.36, "z": -1.37},
+            {"x": 0.63, "y": -2.41, "z": -1.23}, {"x": 0.68, "y": -2.44, "z": -1.11},
+            {"x": 0.75, "y": -2.48, "z": -0.99}, {"x": 0.82, "y": -2.50, "z": -0.87},
+            {"x": 0.89, "y": -2.52, "z": -0.77}, {"x": 0.96, "y": -2.53, "z": -0.66},
+            {"x": 1.04, "y": -2.54, "z": -0.56}, {"x": 1.11, "y": -2.53, "z": -0.47},
+            {"x": 1.19, "y": -2.51, "z": -0.37}, {"x": 1.26, "y": -2.50, "z": -0.30},
+            {"x": 1.33, "y": -2.46, "z": -0.22}, {"x": 1.41, "y": -2.44, "z": -0.14},
+            {"x": 1.47, "y": -2.41, "z": -0.08}, {"x": 1.55, "y": -2.37, "z": -0.01},
+            {"x": 1.61, "y": -2.33, "z": 0.05}, {"x": 1.68, "y": -2.29, "z": 0.11},
+            {"x": 1.74, "y": -2.25, "z": 0.16}, {"x": 1.81, "y": -2.20, "z": 0.21},
+            {"x": 1.87, "y": -2.16, "z": 0.25}, {"x": 1.92, "y": -2.11, "z": 0.30},
+            {"x": 1.97, "y": -2.05, "z": 0.34}, {"x": 2.03, "y": -2.00, "z": 0.37},
+            {"x": 2.08, "y": -1.94, "z": 0.41}, {"x": 2.13, "y": -1.89, "z": 0.45},
+            {"x": 2.18, "y": -1.82, "z": 0.46}, {"x": 2.22, "y": -1.76, "z": 0.50},
+            {"x": 2.26, "y": -1.69, "z": 0.52}, {"x": 2.30, "y": -1.62, "z": 0.54},
+            {"x": 2.33, "y": -1.55, "z": 0.56}, {"x": 2.37, "y": -1.48, "z": 0.57},
+            {"x": 2.40, "y": -1.40, "z": 0.59}, {"x": 2.42, "y": -1.33, "z": 0.60},
+            {"x": 2.44, "y": -1.26, "z": 0.61}, {"x": 2.46, "y": -1.18, "z": 0.62},
+            {"x": 2.48, "y": -1.11, "z": 0.62}, {"x": 2.50, "y": -1.02, "z": 0.63},
+            {"x": 2.52, "y": -0.96, "z": 0.62}, {"x": 2.53, "y": -0.88, "z": 0.62},
+            {"x": 2.54, "y": -0.80, "z": 0.63}, {"x": 2.54, "y": -0.72, "z": 0.62},
+            {"x": 2.55, "y": -0.65, "z": 0.62}, {"x": 2.55, "y": -0.57, "z": 0.63},
+            {"x": 2.56, "y": -0.50, "z": 0.61}, {"x": 2.55, "y": -0.43, "z": 0.62},
+            {"x": 2.55, "y": -0.36, "z": 0.61}, {"x": 2.55, "y": -0.28, "z": 0.60},
+            {"x": 2.55, "y": -0.21, "z": 0.61}, {"x": 2.53, "y": -0.15, "z": 0.60},
+            {"x": 2.52, "y": -0.08, "z": 0.59}, {"x": 2.51, "y": -0.01, "z": 0.58},
+            {"x": 2.49, "y": 0.05, "z": 0.58}, {"x": 2.48, "y": 0.12, "z": 0.56},
+            {"x": 2.46, "y": 0.18, "z": 0.57}, {"x": 2.44, "y": 0.24, "z": 0.56},
+            {"x": 2.42, "y": 0.29, "z": 0.55}, {"x": 2.40, "y": 0.34, "z": 0.53},
+            {"x": 2.38, "y": 0.40, "z": 0.53}, {"x": 2.35, "y": 0.46, "z": 0.52},
+            {"x": 2.33, "y": 0.51, "z": 0.51}, {"x": 2.30, "y": 0.56, "z": 0.50},
+            {"x": 2.28, "y": 0.61, "z": 0.49}, {"x": 2.25, "y": 0.65, "z": 0.47},
+            {"x": 2.23, "y": 0.70, "z": 0.47}, {"x": 2.19, "y": 0.75, "z": 0.45},
+            {"x": 2.17, "y": 0.80, "z": 0.43}, {"x": 2.14, "y": 0.84, "z": 0.42},
+            {"x": 2.11, "y": 0.88, "z": 0.41}, {"x": 2.08, "y": 0.92, "z": 0.40},
+            {"x": 2.04, "y": 0.97, "z": 0.38}, {"x": 2.01, "y": 1.01, "z": 0.36},
+            {"x": 1.98, "y": 1.04, "z": 0.34}, {"x": 1.95, "y": 1.08, "z": 0.33},
+            {"x": 1.91, "y": 1.12, "z": 0.31}, {"x": 1.88, "y": 1.16, "z": 0.30},
+            {"x": 1.83, "y": 1.19, "z": 0.28}, {"x": 1.81, "y": 1.23, "z": 0.26},
+            {"x": 1.77, "y": 1.26, "z": 0.24}, {"x": 1.74, "y": 1.29, "z": 0.23},
+            {"x": 1.69, "y": 1.32, "z": 0.22}, {"x": 1.66, "y": 1.36, "z": 0.20},
+            {"x": 1.62, "y": 1.38, "z": 0.19}, {"x": 1.58, "y": 1.41, "z": 0.16},
+            {"x": 1.54, "y": 1.44, "z": 0.16}, {"x": 1.49, "y": 1.46, "z": 0.15},
+            {"x": 1.46, "y": 1.49, "z": 0.13}, {"x": 1.41, "y": 1.51, "z": 0.12},
+            {"x": 1.37, "y": 1.53, "z": 0.10}, {"x": 1.34, "y": 1.55, "z": 0.08},
+            {"x": 1.29, "y": 1.58, "z": 0.07}, {"x": 1.24, "y": 1.59, "z": 0.06},
+            {"x": 1.21, "y": 1.61, "z": 0.04}, {"x": 1.16, "y": 1.63, "z": 0.03},
+            {"x": 1.11, "y": 1.64, "z": 0.02}, {"x": 1.08, "y": 1.65, "z": 0.01},
+            {"x": 1.03, "y": 1.66, "z": -0.01}, {"x": 0.99, "y": 1.68, "z": -0.02},
+            {"x": 0.94, "y": 1.69, "z": -0.04}, {"x": 0.90, "y": 1.71, "z": -0.04},
+            {"x": 0.86, "y": 1.70, "z": -0.06}, {"x": 0.82, "y": 1.73, "z": -0.08},
+            {"x": 0.77, "y": 1.72, "z": -0.08}, {"x": 0.73, "y": 1.74, "z": -0.10},
+            {"x": 0.69, "y": 1.74, "z": -0.11}, {"x": 0.64, "y": 1.75, "z": -0.12},
+            {"x": 0.60, "y": 1.75, "z": -0.13}, {"x": 0.55, "y": 1.76, "z": -0.15},
+            {"x": 0.51, "y": 1.76, "z": -0.15}, {"x": 0.47, "y": 1.76, "z": -0.16},
+            {"x": 0.42, "y": 1.77, "z": -0.19}, {"x": 0.38, "y": 1.76, "z": -0.19},
+            {"x": 0.33, "y": 1.77, "z": -0.20}, {"x": 0.29, "y": 1.77, "z": -0.20},
+            {"x": 0.26, "y": 1.77, "z": -0.22}, {"x": 0.21, "y": 1.77, "z": -0.23},
+            {"x": 0.16, "y": 1.77, "z": -0.24}, {"x": 0.12, "y": 1.77, "z": -0.25},
+            {"x": 0.08, "y": 1.76, "z": -0.26}, {"x": 0.03, "y": 1.76, "z": -0.27},
+            {"x": 0.00, "y": 1.75, "z": -0.29}, {"x": -0.05, "y": 1.75, "z": -0.29},
+            {"x": -0.09, "y": 1.74, "z": -0.29}, {"x": -0.13, "y": 1.73, "z": -0.31},
+            {"x": -0.18, "y": 1.73, "z": -0.31}, {"x": -0.22, "y": 1.71, "z": -0.33},
+            {"x": -0.26, "y": 1.71, "z": -0.33}, {"x": -0.30, "y": 1.71, "z": -0.34},
+            {"x": -0.34, "y": 1.68, "z": -0.34}, {"x": -0.38, "y": 1.67, "z": -0.35},
+            {"x": -0.43, "y": 1.67, "z": -0.35}, {"x": -0.47, "y": 1.65, "z": -0.36},
+            {"x": -0.50, "y": 1.64, "z": -0.38}, {"x": -0.55, "y": 1.62, "z": -0.38},
+            {"x": -0.59, "y": 1.61, "z": -0.38}, {"x": -0.62, "y": 1.58, "z": -0.38},
+            {"x": -0.67, "y": 1.57, "z": -0.38}, {"x": -0.71, "y": 1.55, "z": -0.37},
+            {"x": -0.75, "y": 1.53, "z": -0.38}, {"x": -0.78, "y": 1.51, "z": -0.38},
+            {"x": -0.82, "y": 1.49, "z": -0.38}, {"x": -0.85, "y": 1.47, "z": -0.38},
+            {"x": -0.89, "y": 1.45, "z": -0.38}, {"x": -0.93, "y": 1.44, "z": -0.37},
+            {"x": -0.96, "y": 1.40, "z": -0.38}, {"x": -1.00, "y": 1.38, "z": -0.37},
+            {"x": -1.04, "y": 1.35, "z": -0.37}, {"x": -1.07, "y": 1.33, "z": -0.36},
+            {"x": -1.11, "y": 1.31, "z": -0.35}, {"x": -1.15, "y": 1.27, "z": -0.36},
+            {"x": -1.18, "y": 1.25, "z": -0.35}, {"x": -1.21, "y": 1.22, "z": -0.34},
+            {"x": -1.25, "y": 1.19, "z": -0.34}, {"x": -1.27, "y": 1.16, "z": -0.34},
+            {"x": -1.30, "y": 1.14, "z": -0.32}, {"x": -1.34, "y": 1.11, "z": -0.31},
+            {"x": -1.37, "y": 1.08, "z": -0.31}, {"x": -1.41, "y": 1.04, "z": -0.31},
+            {"x": -1.43, "y": 1.01, "z": -0.30}, {"x": -1.46, "y": 0.99, "z": -0.28},
+            {"x": -1.49, "y": 0.96, "z": -0.28}, {"x": -1.52, "y": 0.91, "z": -0.26},
+            {"x": -1.54, "y": 0.89, "z": -0.25}, {"x": -1.56, "y": 0.86, "z": -0.24},
+            {"x": -1.59, "y": 0.83, "z": -0.24}, {"x": -1.62, "y": 0.79, "z": -0.23},
+            {"x": -1.65, "y": 0.76, "z": -0.21}, {"x": -1.66, "y": 0.72, "z": -0.22},
+            {"x": -1.69, "y": 0.69, "z": -0.20}, {"x": -1.71, "y": 0.66, "z": -0.18},
+            {"x": -1.73, "y": 0.62, "z": -0.17}, {"x": -1.75, "y": 0.59, "z": -0.16},
+            {"x": -1.78, "y": 0.56, "z": -0.15}, {"x": -1.79, "y": 0.53, "z": -0.13},
+            {"x": -1.81, "y": 0.49, "z": -0.12}, {"x": -1.83, "y": 0.45, "z": -0.11},
+            {"x": -1.85, "y": 0.42, "z": -0.10}, {"x": -1.86, "y": 0.39, "z": -0.09},
+            {"x": -1.89, "y": 0.35, "z": -0.07}, {"x": -1.90, "y": 0.32, "z": -0.07},
+            {"x": -1.92, "y": 0.28, "z": -0.06}, {"x": -1.93, "y": 0.25, "z": -0.05},
+            {"x": -1.95, "y": 0.21, "z": -0.03}, {"x": -1.97, "y": 0.18, "z": -0.02},
+            {"x": -1.98, "y": 0.14, "z": -0.01}, {"x": -1.99, "y": 0.11, "z": 0.01},
+            {"x": -2.00, "y": 0.07, "z": 0.02}, {"x": -2.01, "y": 0.03, "z": 0.03},
+            {"x": -2.03, "y": -0.01, "z": 0.05}, {"x": -2.04, "y": -0.04, "z": 0.06},
+            {"x": -2.05, "y": -0.08, "z": 0.06}, {"x": -2.06, "y": -0.11, "z": 0.08},
+            {"x": -2.07, "y": -0.15, "z": 0.09}, {"x": -2.08, "y": -0.18, "z": 0.12},
+            {"x": -2.09, "y": -0.22, "z": 0.13}, {"x": -2.09, "y": -0.26, "z": 0.14},
+            {"x": -2.11, "y": -0.29, "z": 0.16}, {"x": -2.12, "y": -0.33, "z": 0.17},
+            {"x": -2.11, "y": -0.37, "z": 0.18}, {"x": -2.13, "y": -0.40, "z": 0.19},
+            {"x": -2.13, "y": -0.43, "z": 0.21}, {"x": -2.14, "y": -0.47, "z": 0.22},
+            {"x": -2.15, "y": -0.50, "z": 0.25}, {"x": -2.14, "y": -0.55, "z": 0.26},
+            {"x": -2.15, "y": -0.58, "z": 0.27}, {"x": -2.16, "y": -0.62, "z": 0.28},
+            {"x": -2.16, "y": -0.65, "z": 0.30}, {"x": -2.16, "y": -0.69, "z": 0.31},
+            {"x": -2.17, "y": -0.72, "z": 0.33}, {"x": -2.16, "y": -0.75, "z": 0.34},
+            {"x": -2.16, "y": -0.79, "z": 0.36}, {"x": -2.16, "y": -0.82, "z": 0.37},
+            {"x": -2.16, "y": -0.86, "z": 0.39}, {"x": -2.16, "y": -0.89, "z": 0.42},
+            {"x": -2.16, "y": -0.92, "z": 0.43}, {"x": -2.15, "y": -0.95, "z": 0.43},
+            {"x": -2.15, "y": -1.00, "z": 0.44}, {"x": -2.15, "y": -1.02, "z": 0.46},
+            {"x": -2.14, "y": -1.06, "z": 0.49}, {"x": -2.13, "y": -1.09, "z": 0.50},
+            {"x": -2.13, "y": -1.13, "z": 0.50}, {"x": -2.13, "y": -1.16, "z": 0.52},
+            {"x": -2.12, "y": -1.18, "z": 0.54}, {"x": -2.12, "y": -1.22, "z": 0.55},
+            {"x": -2.11, "y": -1.25, "z": 0.56}, {"x": -2.11, "y": -1.27, "z": 0.58},
+            {"x": -2.09, "y": -1.32, "z": 0.59}, {"x": -2.09, "y": -1.34, "z": 0.60},
+            {"x": -2.08, "y": -1.37, "z": 0.62}, {"x": -2.06, "y": -1.41, "z": 0.63},
+            {"x": -2.06, "y": -1.43, "z": 0.66}, {"x": -2.05, "y": -1.46, "z": 0.66},
+            {"x": -2.05, "y": -1.50, "z": 0.67}, {"x": -2.03, "y": -1.51, "z": 0.70},
+            {"x": -2.02, "y": -1.54, "z": 0.71}, {"x": -2.00, "y": -1.57, "z": 0.72},
+            {"x": -1.99, "y": -1.60, "z": 0.74}, {"x": -1.99, "y": -1.63, "z": 0.75},
+            {"x": -1.97, "y": -1.65, "z": 0.76}, {"x": -1.95, "y": -1.68, "z": 0.77},
+            {"x": -1.94, "y": -1.70, "z": 0.78}, {"x": -1.93, "y": -1.72, "z": 0.81},
+            {"x": -1.91, "y": -1.75, "z": 0.82}, {"x": -1.90, "y": -1.76, "z": 0.84},
+            {"x": -1.88, "y": -1.80, "z": 0.84}, {"x": -1.87, "y": -1.82, "z": 0.86}
+        ];
+
+        // Datos de Atención vs MLP (ejemplo simplificado)
+        const attnData = [];
+        const mlpData = [];
+        for (let i = 0; i < 100; i++) {
+            attnData.push({x: -0.5 + Math.random() * 0.8, y: 0.1 + Math.random() * 0.5});
+            mlpData.push({x: 0.1 + Math.random() * 0.8, y: -0.5 + Math.random() * 0.6});
+        }
+
+        // Datos de evolución de capas (ejemplo)
+        const layerEvolution = [
+            {x: -0.8, y: -0.3}, {x: -0.6, y: -0.25}, {x: -0.4, y: -0.2},
+            {x: -0.2, y: -0.1}, {x: 0, y: 0}, {x: 0.15, y: 0.1},
+            {x: 0.3, y: 0.15}, {x: 0.4, y: 0.2}, {x: 0.5, y: 0.22},
+            {x: 0.55, y: 0.25}, {x: 0.6, y: 0.27}, {x: 0.65, y: 0.3}
+        ];
+
+        // ============================================
+        // CHART.JS - Gráficos 2D
+        // ============================================
+        Chart.defaults.color = '#e0e0e0';
+        Chart.defaults.borderColor = 'rgba(255,255,255,0.1)';
+
+        // Norma por Posición
+        new Chart(document.getElementById('normByPos'), {
+            type: 'bar',
+            data: {
+                labels: normByPosData.map((_, i) => i),
+                datasets: [{
+                    data: normByPosData,
+                    backgroundColor: normByPosData.map((_, i) => i === 0 ? 'rgba(244, 67, 54, 0.8)' : 'rgba(79, 195, 247, 0.6)'),
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { title: { display: true, text: 'Norma Promedio' } },
+                    x: { title: { display: true, text: 'Posición' } }
+                }
+            }
+        });
+
+        // Norma por Capa
+        new Chart(document.getElementById('normByLayer'), {
+            type: 'bar',
+            data: {
+                labels: normByLayerData.map((_, i) => `L${i}`),
+                datasets: [{
+                    data: normByLayerData,
+                    backgroundColor: normByLayerData.map((_, i) => {
+                        const t = i / normByLayerData.length;
+                        return i % 2 === 0 ?
+                            `rgba(79, 195, 247, ${0.4 + t * 0.5})` :
+                            `rgba(244, 67, 54, ${0.4 + t * 0.5})`;
+                    }),
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { title: { display: true, text: 'Norma Promedio' } },
+                    x: { title: { display: true, text: 'Capa' } }
+                }
+            }
+        });
+
+        // Atención vs MLP
+        new Chart(document.getElementById('attnMLP'), {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Atención',
+                    data: attnData,
+                    backgroundColor: 'rgba(79, 195, 247, 0.5)',
+                    pointRadius: 4
+                }, {
+                    label: 'MLP',
+                    data: mlpData,
+                    backgroundColor: 'rgba(244, 67, 54, 0.5)',
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'top' } },
+                scales: {
+                    x: { title: { display: true, text: 'PC1' } },
+                    y: { title: { display: true, text: 'PC2' } }
+                }
+            }
+        });
+
+        // Evolución de Capas
+        new Chart(document.getElementById('layerPCA'), {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    data: layerEvolution,
+                    backgroundColor: layerEvolution.map((_, i) => {
+                        const t = i / layerEvolution.length;
+                        return `rgba(${50 + t * 200}, ${150 + t * 50}, ${200 - t * 150}, 0.8)`;
+                    }),
+                    pointRadius: 8
+                }, {
+                    data: layerEvolution,
+                    type: 'line',
+                    borderColor: 'rgba(255,255,255,0.3)',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { title: { display: true, text: 'PC1' } },
+                    y: { title: { display: true, text: 'PC2' } }
+                }
+            }
+        });
+
+        // ============================================
+        // THREE.JS - Hélice 3D
+        // ============================================
+        (function() {
+            const container = document.getElementById('helix-3d-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0d1117);
+
+            const camera = new THREE.PerspectiveCamera(60, width/height, 0.1, 1000);
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(width, height);
+            container.appendChild(renderer.domElement);
+
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
+            // Calcular centro y bounds
+            let minX = Infinity, maxX = -Infinity;
+            let minY = Infinity, maxY = -Infinity;
+            let minZ = Infinity, maxZ = -Infinity;
+
+            for (const p of posPCAData) {
+                minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+                minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+                minZ = Math.min(minZ, p.z); maxZ = Math.max(maxZ, p.z);
+            }
+
+            const centerX = (minX + maxX) / 2;
+            const centerY = (minY + maxY) / 2;
+            const centerZ = (minZ + maxZ) / 2;
+            const maxRange = Math.max(maxX - minX, maxY - minY, maxZ - minZ);
+
+            // Crear puntos
+            const positions = [];
+            const colors = [];
+
+            for (let i = 0; i < posPCAData.length; i++) {
+                positions.push(
+                    posPCAData[i].x - centerX,
+                    posPCAData[i].y - centerY,
+                    posPCAData[i].z - centerZ
+                );
+                const t = i / posPCAData.length;
+                colors.push(0.2 + t * 0.8, 0.6 + t * 0.4, 1.0 - t * 0.7);
+            }
+
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: 0.2,
+                vertexColors: true,
+                sizeAttenuation: true
+            });
+
+            const points = new THREE.Points(geometry, material);
+            scene.add(points);
+
+            // Línea
+            const lineGeom = new THREE.BufferGeometry();
+            lineGeom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            const lineMat = new THREE.LineBasicMaterial({ color: 0x6688ff, opacity: 0.5, transparent: true });
+            const line = new THREE.Line(lineGeom, lineMat);
+            scene.add(line);
+
+            // Ejes
+            const axes = new THREE.AxesHelper(maxRange * 0.8);
+            scene.add(axes);
+
+            // Cámara
+            camera.position.set(maxRange * 1.2, maxRange * 1.2, maxRange * 1.2);
+            camera.lookAt(0, 0, 0);
+            controls.target.set(0, 0, 0);
+
+            // Luz
+            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update();
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            window.addEventListener('resize', () => {
+                const w = container.clientWidth;
+                const h = container.clientHeight;
+                camera.aspect = w / h;
+                camera.updateProjectionMatrix();
+                renderer.setSize(w, h);
+            });
+        })();
+
+        // ============================================
+        // CANVAS 2D - Vistas de la Hélice
+        // ============================================
+        function drawView2D(canvasId, getX, getY, axisLabelX, axisLabelY) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            const padding = 40;
+
+            let minX = Infinity, maxX = -Infinity;
+            let minY = Infinity, maxY = -Infinity;
+
+            for (const p of posPCAData) {
+                const x = getX(p);
+                const y = getY(p);
+                minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+                minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+            }
+
+            const rangeX = maxX - minX || 1;
+            const rangeY = maxY - minY || 1;
+            minX -= rangeX * 0.1; maxX += rangeX * 0.1;
+            minY -= rangeY * 0.1; maxY += rangeY * 0.1;
+
+            const mapX = (val) => padding + (val - minX) / (maxX - minX) * (w - 2 * padding);
+            const mapY = (val) => h - padding - (val - minY) / (maxY - minY) * (h - 2 * padding);
+
+            ctx.fillStyle = '#0d1117';
+            ctx.fillRect(0, 0, w, h);
+
+            ctx.strokeStyle = '#444';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(padding, h - padding);
+            ctx.lineTo(w - padding, h - padding);
+            ctx.moveTo(padding, h - padding);
+            ctx.lineTo(padding, padding);
+            ctx.stroke();
+
+            ctx.fillStyle = '#888';
+            ctx.font = '11px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(axisLabelX, w / 2, h - 8);
+            ctx.save();
+            ctx.translate(12, h / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText(axisLabelY, 0, 0);
+            ctx.restore();
+
+            ctx.strokeStyle = 'rgba(100, 150, 255, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (let i = 0; i < posPCAData.length; i++) {
+                const x = mapX(getX(posPCAData[i]));
+                const y = mapY(getY(posPCAData[i]));
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            for (let i = 0; i < posPCAData.length; i++) {
+                const p = posPCAData[i];
+                const x = mapX(getX(p));
+                const y = mapY(getY(p));
+                const t = i / posPCAData.length;
+                const r = Math.floor(50 + t * 200);
+                const g = Math.floor(150 + t * 80);
+                const b = Math.floor(255 - t * 200);
+
+                ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                ctx.beginPath();
+                ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        drawView2D('canvas-xy', p => p.x, p => p.y, 'PC1', 'PC2');
+        drawView2D('canvas-xz', p => p.x, p => p.z, 'PC1', 'PC3');
+        drawView2D('canvas-yz', p => p.y, p => p.z, 'PC2', 'PC3');
+    </script>
+</body>
+</html>

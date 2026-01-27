@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Hélice 2D - Embeddings Posicionales GPT-2</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            font-family: sans-serif;
+            min-height: 100vh;
+        }
+        h1 { color: #4fc3f7; text-align: center; }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .view {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .view-title {
+            color: #4fc3f7;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        canvas {
+            display: block;
+            background: #0d1117;
+            border-radius: 8px;
+        }
+        .info {
+            max-width: 800px;
+            margin: 30px auto;
+            background: rgba(79, 195, 247, 0.1);
+            border-left: 4px solid #4fc3f7;
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+        }
+        .note {
+            background: rgba(255,200,0,0.1);
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px auto;
+            max-width: 800px;
+            border-radius: 0 8px 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Hélice de Embeddings Posicionales - GPT-2</h1>
+
+    <div class="note">
+        <strong>Nota:</strong> WebGL no está disponible en tu navegador. Esta es una visualización 2D alternativa
+        que muestra la hélice desde tres ángulos diferentes.
+    </div>
+
+    <div class="container">
+        <div class="view">
+            <div class="view-title">Vista XY (frontal)</div>
+            <canvas id="canvas-xy" width="350" height="350"></canvas>
+        </div>
+        <div class="view">
+            <div class="view-title">Vista XZ (superior)</div>
+            <canvas id="canvas-xz" width="350" height="350"></canvas>
+        </div>
+        <div class="view">
+            <div class="view-title">Vista YZ (lateral)</div>
+            <canvas id="canvas-yz" width="350" height="350"></canvas>
+        </div>
+    </div>
+
+    <div class="info">
+        <h3>¿Qué estás viendo?</h3>
+        <p>Los <strong>embeddings posicionales</strong> de GPT-2 forman una <strong>estructura helicoidal</strong>
+        (como un resorte o ADN) en el espacio de alta dimensión.</p>
+        <p>Cada punto representa una posición en la secuencia (0-255). El color va de
+        <span style="color:#4fc3f7">azul</span> (posiciones tempranas) a
+        <span style="color:#f0e040">amarillo</span> (posiciones tardías).</p>
+        <p>Esta estructura emerge naturalmente durante el entrenamiento - el modelo "descubrió"
+        que representar las posiciones como una hélice es útil para procesar secuencias.</p>
+    </div>
+
+    <script>
+        // Datos de la hélice (256 posiciones de GPT-2, proyectados a 3D con PCA)
+        const posPCAData = [
+            {"x": 2.36, "y": -1.31, "z": -5.93}, {"x": 0.86, "y": -1.67, "z": -2.89},
+            {"x": 0.62, "y": -1.53, "z": -2.75}, {"x": 0.57, "y": -1.59, "z": -2.64},
+            {"x": 0.50, "y": -1.71, "z": -2.47}, {"x": 0.45, "y": -1.83, "z": -2.29},
+            {"x": 0.43, "y": -1.94, "z": -2.12}, {"x": 0.43, "y": -2.04, "z": -1.96},
+            {"x": 0.45, "y": -2.13, "z": -1.79}, {"x": 0.48, "y": -2.23, "z": -1.63},
+            {"x": 0.53, "y": -2.29, "z": -1.50}, {"x": 0.58, "y": -2.36, "z": -1.37},
+            {"x": 0.63, "y": -2.41, "z": -1.23}, {"x": 0.68, "y": -2.44, "z": -1.11},
+            {"x": 0.75, "y": -2.48, "z": -0.99}, {"x": 0.82, "y": -2.50, "z": -0.87},
+            {"x": 0.89, "y": -2.52, "z": -0.77}, {"x": 0.96, "y": -2.53, "z": -0.66},
+            {"x": 1.04, "y": -2.54, "z": -0.56}, {"x": 1.11, "y": -2.53, "z": -0.47},
+            {"x": 1.19, "y": -2.51, "z": -0.37}, {"x": 1.26, "y": -2.50, "z": -0.30},
+            {"x": 1.33, "y": -2.46, "z": -0.22}, {"x": 1.41, "y": -2.44, "z": -0.14},
+            {"x": 1.47, "y": -2.41, "z": -0.08}, {"x": 1.55, "y": -2.37, "z": -0.01},
+            {"x": 1.61, "y": -2.33, "z": 0.05}, {"x": 1.68, "y": -2.29, "z": 0.11},
+            {"x": 1.74, "y": -2.25, "z": 0.16}, {"x": 1.81, "y": -2.20, "z": 0.21},
+            {"x": 1.87, "y": -2.16, "z": 0.25}, {"x": 1.92, "y": -2.11, "z": 0.30},
+            {"x": 1.97, "y": -2.05, "z": 0.34}, {"x": 2.03, "y": -2.00, "z": 0.37},
+            {"x": 2.08, "y": -1.94, "z": 0.41}, {"x": 2.13, "y": -1.89, "z": 0.45},
+            {"x": 2.18, "y": -1.82, "z": 0.46}, {"x": 2.22, "y": -1.76, "z": 0.50},
+            {"x": 2.26, "y": -1.69, "z": 0.52}, {"x": 2.30, "y": -1.62, "z": 0.54},
+            {"x": 2.33, "y": -1.55, "z": 0.56}, {"x": 2.37, "y": -1.48, "z": 0.57},
+            {"x": 2.40, "y": -1.40, "z": 0.59}, {"x": 2.42, "y": -1.33, "z": 0.60},
+            {"x": 2.44, "y": -1.26, "z": 0.61}, {"x": 2.46, "y": -1.18, "z": 0.62},
+            {"x": 2.48, "y": -1.11, "z": 0.62}, {"x": 2.50, "y": -1.02, "z": 0.63},
+            {"x": 2.52, "y": -0.96, "z": 0.62}, {"x": 2.53, "y": -0.88, "z": 0.62},
+            {"x": 2.54, "y": -0.80, "z": 0.63}, {"x": 2.54, "y": -0.72, "z": 0.62},
+            {"x": 2.55, "y": -0.65, "z": 0.62}, {"x": 2.55, "y": -0.57, "z": 0.63},
+            {"x": 2.56, "y": -0.50, "z": 0.61}, {"x": 2.55, "y": -0.43, "z": 0.62},
+            {"x": 2.55, "y": -0.36, "z": 0.61}, {"x": 2.55, "y": -0.28, "z": 0.60},
+            {"x": 2.55, "y": -0.21, "z": 0.61}, {"x": 2.53, "y": -0.15, "z": 0.60},
+            {"x": 2.52, "y": -0.08, "z": 0.59}, {"x": 2.51, "y": -0.01, "z": 0.58},
+            {"x": 2.49, "y": 0.05, "z": 0.58}, {"x": 2.48, "y": 0.12, "z": 0.56},
+            {"x": 2.46, "y": 0.18, "z": 0.57}, {"x": 2.44, "y": 0.24, "z": 0.56},
+            {"x": 2.42, "y": 0.29, "z": 0.55}, {"x": 2.40, "y": 0.34, "z": 0.53},
+            {"x": 2.38, "y": 0.40, "z": 0.53}, {"x": 2.35, "y": 0.46, "z": 0.52},
+            {"x": 2.33, "y": 0.51, "z": 0.51}, {"x": 2.30, "y": 0.56, "z": 0.50},
+            {"x": 2.28, "y": 0.61, "z": 0.49}, {"x": 2.25, "y": 0.65, "z": 0.47},
+            {"x": 2.23, "y": 0.70, "z": 0.47}, {"x": 2.19, "y": 0.75, "z": 0.45},
+            {"x": 2.17, "y": 0.80, "z": 0.43}, {"x": 2.14, "y": 0.84, "z": 0.42},
+            {"x": 2.11, "y": 0.88, "z": 0.41}, {"x": 2.08, "y": 0.92, "z": 0.40},
+            {"x": 2.04, "y": 0.97, "z": 0.38}, {"x": 2.01, "y": 1.01, "z": 0.36},
+            {"x": 1.98, "y": 1.04, "z": 0.34}, {"x": 1.95, "y": 1.08, "z": 0.33},
+            {"x": 1.91, "y": 1.12, "z": 0.31}, {"x": 1.88, "y": 1.16, "z": 0.30},
+            {"x": 1.83, "y": 1.19, "z": 0.28}, {"x": 1.81, "y": 1.23, "z": 0.26},
+            {"x": 1.77, "y": 1.26, "z": 0.24}, {"x": 1.74, "y": 1.29, "z": 0.23},
+            {"x": 1.69, "y": 1.32, "z": 0.22}, {"x": 1.66, "y": 1.36, "z": 0.20},
+            {"x": 1.62, "y": 1.38, "z": 0.19}, {"x": 1.58, "y": 1.41, "z": 0.16},
+            {"x": 1.54, "y": 1.44, "z": 0.16}, {"x": 1.49, "y": 1.46, "z": 0.15},
+            {"x": 1.46, "y": 1.49, "z": 0.13}, {"x": 1.41, "y": 1.51, "z": 0.12},
+            {"x": 1.37, "y": 1.53, "z": 0.10}, {"x": 1.34, "y": 1.55, "z": 0.08},
+            {"x": 1.29, "y": 1.58, "z": 0.07}, {"x": 1.24, "y": 1.59, "z": 0.06},
+            {"x": 1.21, "y": 1.61, "z": 0.04}, {"x": 1.16, "y": 1.63, "z": 0.03},
+            {"x": 1.11, "y": 1.64, "z": 0.02}, {"x": 1.08, "y": 1.65, "z": 0.01},
+            {"x": 1.03, "y": 1.66, "z": -0.01}, {"x": 0.99, "y": 1.68, "z": -0.02},
+            {"x": 0.94, "y": 1.69, "z": -0.04}, {"x": 0.90, "y": 1.71, "z": -0.04},
+            {"x": 0.86, "y": 1.70, "z": -0.06}, {"x": 0.82, "y": 1.73, "z": -0.08},
+            {"x": 0.77, "y": 1.72, "z": -0.08}, {"x": 0.73, "y": 1.74, "z": -0.10},
+            {"x": 0.69, "y": 1.74, "z": -0.11}, {"x": 0.64, "y": 1.75, "z": -0.12},
+            {"x": 0.60, "y": 1.75, "z": -0.13}, {"x": 0.55, "y": 1.76, "z": -0.15},
+            {"x": 0.51, "y": 1.76, "z": -0.15}, {"x": 0.47, "y": 1.76, "z": -0.16},
+            {"x": 0.42, "y": 1.77, "z": -0.19}, {"x": 0.38, "y": 1.76, "z": -0.19},
+            {"x": 0.33, "y": 1.77, "z": -0.20}, {"x": 0.29, "y": 1.77, "z": -0.20},
+            {"x": 0.26, "y": 1.77, "z": -0.22}, {"x": 0.21, "y": 1.77, "z": -0.23},
+            {"x": 0.16, "y": 1.77, "z": -0.24}, {"x": 0.12, "y": 1.77, "z": -0.25},
+            {"x": 0.08, "y": 1.76, "z": -0.26}, {"x": 0.03, "y": 1.76, "z": -0.27},
+            {"x": 0.00, "y": 1.75, "z": -0.29}, {"x": -0.05, "y": 1.75, "z": -0.29},
+            {"x": -0.09, "y": 1.74, "z": -0.29}, {"x": -0.13, "y": 1.73, "z": -0.31},
+            {"x": -0.18, "y": 1.73, "z": -0.31}, {"x": -0.22, "y": 1.71, "z": -0.33},
+            {"x": -0.26, "y": 1.71, "z": -0.33}, {"x": -0.30, "y": 1.71, "z": -0.34},
+            {"x": -0.34, "y": 1.68, "z": -0.34}, {"x": -0.38, "y": 1.67, "z": -0.35},
+            {"x": -0.43, "y": 1.67, "z": -0.35}, {"x": -0.47, "y": 1.65, "z": -0.36},
+            {"x": -0.50, "y": 1.64, "z": -0.38}, {"x": -0.55, "y": 1.62, "z": -0.38},
+            {"x": -0.59, "y": 1.61, "z": -0.38}, {"x": -0.62, "y": 1.58, "z": -0.38},
+            {"x": -0.67, "y": 1.57, "z": -0.38}, {"x": -0.71, "y": 1.55, "z": -0.37},
+            {"x": -0.75, "y": 1.53, "z": -0.38}, {"x": -0.78, "y": 1.51, "z": -0.38},
+            {"x": -0.82, "y": 1.49, "z": -0.38}, {"x": -0.85, "y": 1.47, "z": -0.38},
+            {"x": -0.89, "y": 1.45, "z": -0.38}, {"x": -0.93, "y": 1.44, "z": -0.37},
+            {"x": -0.96, "y": 1.40, "z": -0.38}, {"x": -1.00, "y": 1.38, "z": -0.37},
+            {"x": -1.04, "y": 1.35, "z": -0.37}, {"x": -1.07, "y": 1.33, "z": -0.36},
+            {"x": -1.11, "y": 1.31, "z": -0.35}, {"x": -1.15, "y": 1.27, "z": -0.36},
+            {"x": -1.18, "y": 1.25, "z": -0.35}, {"x": -1.21, "y": 1.22, "z": -0.34},
+            {"x": -1.25, "y": 1.19, "z": -0.34}, {"x": -1.27, "y": 1.16, "z": -0.34},
+            {"x": -1.30, "y": 1.14, "z": -0.32}, {"x": -1.34, "y": 1.11, "z": -0.31},
+            {"x": -1.37, "y": 1.08, "z": -0.31}, {"x": -1.41, "y": 1.04, "z": -0.31},
+            {"x": -1.43, "y": 1.01, "z": -0.30}, {"x": -1.46, "y": 0.99, "z": -0.28},
+            {"x": -1.49, "y": 0.96, "z": -0.28}, {"x": -1.52, "y": 0.91, "z": -0.26},
+            {"x": -1.54, "y": 0.89, "z": -0.25}, {"x": -1.56, "y": 0.86, "z": -0.24},
+            {"x": -1.59, "y": 0.83, "z": -0.24}, {"x": -1.62, "y": 0.79, "z": -0.23},
+            {"x": -1.65, "y": 0.76, "z": -0.21}, {"x": -1.66, "y": 0.72, "z": -0.22},
+            {"x": -1.69, "y": 0.69, "z": -0.20}, {"x": -1.71, "y": 0.66, "z": -0.18},
+            {"x": -1.73, "y": 0.62, "z": -0.17}, {"x": -1.75, "y": 0.59, "z": -0.16},
+            {"x": -1.78, "y": 0.56, "z": -0.15}, {"x": -1.79, "y": 0.53, "z": -0.13},
+            {"x": -1.81, "y": 0.49, "z": -0.12}, {"x": -1.83, "y": 0.45, "z": -0.11},
+            {"x": -1.85, "y": 0.42, "z": -0.10}, {"x": -1.86, "y": 0.39, "z": -0.09},
+            {"x": -1.89, "y": 0.35, "z": -0.07}, {"x": -1.90, "y": 0.32, "z": -0.07},
+            {"x": -1.92, "y": 0.28, "z": -0.06}, {"x": -1.93, "y": 0.25, "z": -0.05},
+            {"x": -1.95, "y": 0.21, "z": -0.03}, {"x": -1.97, "y": 0.18, "z": -0.02},
+            {"x": -1.98, "y": 0.14, "z": -0.01}, {"x": -1.99, "y": 0.11, "z": 0.01},
+            {"x": -2.00, "y": 0.07, "z": 0.02}, {"x": -2.01, "y": 0.03, "z": 0.03},
+            {"x": -2.03, "y": -0.01, "z": 0.05}, {"x": -2.04, "y": -0.04, "z": 0.06},
+            {"x": -2.05, "y": -0.08, "z": 0.06}, {"x": -2.06, "y": -0.11, "z": 0.08},
+            {"x": -2.07, "y": -0.15, "z": 0.09}, {"x": -2.08, "y": -0.18, "z": 0.12},
+            {"x": -2.09, "y": -0.22, "z": 0.13}, {"x": -2.09, "y": -0.26, "z": 0.14},
+            {"x": -2.11, "y": -0.29, "z": 0.16}, {"x": -2.12, "y": -0.33, "z": 0.17},
+            {"x": -2.11, "y": -0.37, "z": 0.18}, {"x": -2.13, "y": -0.40, "z": 0.19},
+            {"x": -2.13, "y": -0.43, "z": 0.21}, {"x": -2.14, "y": -0.47, "z": 0.22},
+            {"x": -2.15, "y": -0.50, "z": 0.25}, {"x": -2.14, "y": -0.55, "z": 0.26},
+            {"x": -2.15, "y": -0.58, "z": 0.27}, {"x": -2.16, "y": -0.62, "z": 0.28},
+            {"x": -2.16, "y": -0.65, "z": 0.30}, {"x": -2.16, "y": -0.69, "z": 0.31},
+            {"x": -2.17, "y": -0.72, "z": 0.33}, {"x": -2.16, "y": -0.75, "z": 0.34},
+            {"x": -2.16, "y": -0.79, "z": 0.36}, {"x": -2.16, "y": -0.82, "z": 0.37},
+            {"x": -2.16, "y": -0.86, "z": 0.39}, {"x": -2.16, "y": -0.89, "z": 0.42},
+            {"x": -2.16, "y": -0.92, "z": 0.43}, {"x": -2.15, "y": -0.95, "z": 0.43},
+            {"x": -2.15, "y": -1.00, "z": 0.44}, {"x": -2.15, "y": -1.02, "z": 0.46},
+            {"x": -2.14, "y": -1.06, "z": 0.49}, {"x": -2.13, "y": -1.09, "z": 0.50},
+            {"x": -2.13, "y": -1.13, "z": 0.50}, {"x": -2.13, "y": -1.16, "z": 0.52},
+            {"x": -2.12, "y": -1.18, "z": 0.54}, {"x": -2.12, "y": -1.22, "z": 0.55},
+            {"x": -2.11, "y": -1.25, "z": 0.56}, {"x": -2.11, "y": -1.27, "z": 0.58},
+            {"x": -2.09, "y": -1.32, "z": 0.59}, {"x": -2.09, "y": -1.34, "z": 0.60},
+            {"x": -2.08, "y": -1.37, "z": 0.62}, {"x": -2.06, "y": -1.41, "z": 0.63},
+            {"x": -2.06, "y": -1.43, "z": 0.66}, {"x": -2.05, "y": -1.46, "z": 0.66},
+            {"x": -2.05, "y": -1.50, "z": 0.67}, {"x": -2.03, "y": -1.51, "z": 0.70},
+            {"x": -2.02, "y": -1.54, "z": 0.71}, {"x": -2.00, "y": -1.57, "z": 0.72},
+            {"x": -1.99, "y": -1.60, "z": 0.74}, {"x": -1.99, "y": -1.63, "z": 0.75},
+            {"x": -1.97, "y": -1.65, "z": 0.76}, {"x": -1.95, "y": -1.68, "z": 0.77},
+            {"x": -1.94, "y": -1.70, "z": 0.78}, {"x": -1.93, "y": -1.72, "z": 0.81},
+            {"x": -1.91, "y": -1.75, "z": 0.82}, {"x": -1.90, "y": -1.76, "z": 0.84},
+            {"x": -1.88, "y": -1.80, "z": 0.84}, {"x": -1.87, "y": -1.82, "z": 0.86}
+        ];
+
+        // Función para dibujar una vista 2D
+        function drawView(canvasId, getX, getY, axisLabelX, axisLabelY) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            const padding = 40;
+
+            // Calcular bounds
+            let minX = Infinity, maxX = -Infinity;
+            let minY = Infinity, maxY = -Infinity;
+
+            for (const p of posPCAData) {
+                const x = getX(p);
+                const y = getY(p);
+                minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+                minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+            }
+
+            // Añadir margen
+            const rangeX = maxX - minX || 1;
+            const rangeY = maxY - minY || 1;
+            minX -= rangeX * 0.1; maxX += rangeX * 0.1;
+            minY -= rangeY * 0.1; maxY += rangeY * 0.1;
+
+            // Función de mapeo
+            const mapX = (val) => padding + (val - minX) / (maxX - minX) * (w - 2 * padding);
+            const mapY = (val) => h - padding - (val - minY) / (maxY - minY) * (h - 2 * padding);
+
+            // Fondo
+            ctx.fillStyle = '#0d1117';
+            ctx.fillRect(0, 0, w, h);
+
+            // Ejes
+            ctx.strokeStyle = '#444';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(padding, h - padding);
+            ctx.lineTo(w - padding, h - padding);
+            ctx.moveTo(padding, h - padding);
+            ctx.lineTo(padding, padding);
+            ctx.stroke();
+
+            // Etiquetas de ejes
+            ctx.fillStyle = '#888';
+            ctx.font = '12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(axisLabelX, w / 2, h - 10);
+            ctx.save();
+            ctx.translate(15, h / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText(axisLabelY, 0, 0);
+            ctx.restore();
+
+            // Dibujar línea conectora
+            ctx.strokeStyle = 'rgba(100, 150, 255, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (let i = 0; i < posPCAData.length; i++) {
+                const x = mapX(getX(posPCAData[i]));
+                const y = mapY(getY(posPCAData[i]));
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Dibujar puntos
+            for (let i = 0; i < posPCAData.length; i++) {
+                const p = posPCAData[i];
+                const x = mapX(getX(p));
+                const y = mapY(getY(p));
+                const t = i / posPCAData.length;
+
+                // Color: azul -> cyan -> amarillo
+                const r = Math.floor(50 + t * 200);
+                const g = Math.floor(150 + t * 80);
+                const b = Math.floor(255 - t * 200);
+
+                ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                ctx.beginPath();
+                ctx.arc(x, y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Marcar inicio y fin
+            ctx.fillStyle = '#4fc3f7';
+            ctx.font = 'bold 10px sans-serif';
+            const startX = mapX(getX(posPCAData[0]));
+            const startY = mapY(getY(posPCAData[0]));
+            ctx.fillText('0', startX + 8, startY - 5);
+
+            const endX = mapX(getX(posPCAData[posPCAData.length - 1]));
+            const endY = mapY(getY(posPCAData[posPCAData.length - 1]));
+            ctx.fillStyle = '#f0e040';
+            ctx.fillText('255', endX + 8, endY - 5);
+        }
+
+        // Dibujar las tres vistas
+        drawView('canvas-xy', p => p.x, p => p.y, 'PC1 (X)', 'PC2 (Y)');
+        drawView('canvas-xz', p => p.x, p => p.z, 'PC1 (X)', 'PC3 (Z)');
+        drawView('canvas-yz', p => p.y, p => p.z, 'PC2 (Y)', 'PC3 (Z)');
+    </script>
+</body>
+</html>
