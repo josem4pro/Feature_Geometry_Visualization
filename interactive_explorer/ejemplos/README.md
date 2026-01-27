@@ -12,7 +12,7 @@ Cada ejemplo tiene su propia subcarpeta con:
 
 | Carpeta | Descripcion | Datos |
 |---------|-------------|-------|
-| [ejemplo_1](./ejemplo_1/) | Helice de embeddings posicionales GPT-2 | 512 posiciones reales |
+| [ejemplo_1](./ejemplo_1/) | Trayectoria de "The quick brown fox..." | Hidden states por capa |
 | [ejemplo_2](./ejemplo_2/) | Comparacion semantica Fox vs Dog | Hidden states de 2 frases |
 
 ## Convencion de Nombres

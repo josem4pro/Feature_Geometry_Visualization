@@ -1,0 +1,38 @@
+{
+  "sentence": "The quick brown fox jumps over the lazy dog",
+  "tokens": ["The", "quick", "brown", "fox", "jumps", "over", "the", "lazy", "dog"],
+  "layer_trajectory": [
+    {"x": -264.33, "y": -38.0, "z": 21.8, "layer": 0, "name": "Embedding"},
+    {"x": -231.49, "y": -37.06, "z": 32.24, "layer": 1, "name": "Layer 1"},
+    {"x": -216.6, "y": -45.14, "z": 26.15, "layer": 2, "name": "Layer 2"},
+    {"x": 40.03, "y": -26.98, "z": -23.12, "layer": 3, "name": "Layer 3"},
+    {"x": 62.0, "y": -25.72, "z": -26.48, "layer": 4, "name": "Layer 4"},
+    {"x": 82.96, "y": -23.33, "z": -28.68, "layer": 5, "name": "Layer 5"},
+    {"x": 97.83, "y": -19.53, "z": -27.47, "layer": 6, "name": "Layer 6"},
+    {"x": 110.58, "y": -15.19, "z": -21.41, "layer": 7, "name": "Layer 7"},
+    {"x": 123.61, "y": -8.08, "z": -10.56, "layer": 8, "name": "Layer 8"},
+    {"x": 136.54, "y": 1.86, "z": 4.57, "layer": 9, "name": "Layer 9"},
+    {"x": 152.63, "y": 17.72, "z": 26.83, "layer": 10, "name": "Layer 10"},
+    {"x": 191.15, "y": 83.28, "z": 64.65, "layer": 11, "name": "Layer 11"},
+    {"x": -282.78, "y": 135.44, "z": -43.0, "layer": 12, "name": "Layer 12 (Output)"}
+  ],
+  "token_positions": [
+    {"x": -112.2, "y": -13.28, "z": -11.95, "token": "The", "position": 0},
+    {"x": -36.04, "y": 9.38, "z": 5.35, "token": "quick", "position": 1},
+    {"x": -22.44, "y": 23.93, "z": 9.31, "token": "brown", "position": 2},
+    {"x": 25.05, "y": 32.49, "z": 3.56, "token": "fox", "position": 3},
+    {"x": 84.24, "y": -16.06, "z": -15.73, "token": "jumps", "position": 4},
+    {"x": -0.41, "y": -28.21, "z": -0.74, "token": "over", "position": 5},
+    {"x": 28.17, "y": -23.32, "z": 11.8, "token": "the", "position": 6},
+    {"x": 14.14, "y": -5.06, "z": 8.64, "token": "lazy", "position": 7},
+    {"x": 17.36, "y": 11.29, "z": -16.66, "token": "dog", "position": 8}
+  ],
+  "metadata": {
+    "model": "gpt2",
+    "n_layers": 13,
+    "original_dimensions": 768,
+    "reduced_dimensions": 3,
+    "variance_explained": "99%",
+    "extraction_method": "Hidden states averaged per layer, reduced with PCA"
+  }
+}

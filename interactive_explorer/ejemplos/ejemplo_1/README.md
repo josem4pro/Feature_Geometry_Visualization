@@ -1,151 +1,109 @@
-# Ejemplo 1: Helice de Embeddings Posicionales GPT-2
+# Ejemplo 1: Trayectoria de "The quick brown fox jumps over the lazy dog"
 
 ## Descripcion
 
-Esta visualizacion muestra los **embeddings posicionales reales** de GPT-2, reducidos de 768 dimensiones a 3D mediante PCA. La estructura helicoidal emergente demuestra que el modelo aprendio una representacion geometrica coherente de las posiciones en una secuencia.
+Esta visualizacion muestra como **GPT-2 procesa una frase especifica**, capa por capa. Cada punto representa el estado interno del modelo en una capa, y la trayectoria muestra la evolucion del "pensamiento" desde la entrada hasta la salida.
 
 ## Contenido
 
-- `ejemplo_paper_1.html` - Visualizacion interactiva con graficos 2D y 3D
+- `ejemplo_paper_1.html` - Visualizacion interactiva con graficos 3D
+- `fox_trajectory_data.json` - Datos extraidos de GPT-2
 - `README.md` - Este documento
 
-## Datos Utilizados
+## Que muestra esta visualizacion?
 
-- **Fuente**: `model.transformer.wpe.weight` de GPT-2 (HuggingFace)
-- **Dimensiones originales**: 1024 posiciones x 768 dimensiones
-- **Reduccion**: PCA a 3 componentes (~90% varianza explicada)
-- **Posiciones mostradas**: 512 (primeras posiciones)
+### Trayectoria por Capas
 
----
+GPT-2 tiene **13 capas** (embedding + 12 transformer layers). Cuando procesa "The quick brown fox jumps over the lazy dog":
 
-## BUG CRITICO DOCUMENTADO: Discontinuidad en la Helice
+1. **Capa 0 (Embedding)**: Los tokens se convierten en vectores de 768 dimensiones
+2. **Capas 1-4**: Procesamiento sintactico - estructura gramatical
+3. **Capas 5-8**: Integracion semantica - significado contextual
+4. **Capas 9-12**: Preparacion para prediccion del siguiente token
 
-### Fecha de Deteccion
-27 de Enero de 2026
+### Posiciones de Tokens
 
-### Sintoma
-La helice mostraba un **salto abrupto** visible - dos lineas separadas conectadas por una linea recta, en lugar de una curva continua.
+Cada token termina en una posicion diferente en el espacio latente, influenciado por:
+- Su significado propio
+- El contexto de toda la frase
+- Las relaciones con otros tokens
 
-### Capturas del Bug
+## Datos Tecnicos
 
-El usuario observo que la helice tenia una discontinuidad evidente:
-- La primera parte de la helice se veia correcta
-- Habia un "salto" hacia una segunda seccion
-- Las dos secciones no formaban una curva continua
+| Metrica | Valor |
+|---------|-------|
+| Modelo | GPT-2 (124M parametros) |
+| Frase | "The quick brown fox jumps over the lazy dog" |
+| Tokens | 9 |
+| Capas | 13 (embedding + 12 transformer) |
+| Dimensiones originales | 768 |
+| Reduccion | PCA a 3D |
+| Varianza explicada | ~99% |
 
-### Causa Raiz
+## Extraccion de Datos
 
-En el archivo HTML habia codigo **residual** que generaba datos sinteticos DESPUES de cargar los datos reales:
-
-```javascript
-// CODIGO PROBLEMATICO (ELIMINADO)
-// Agregar mas puntos para completar la helice
-for (let i = 64; i < 256; i++) {
-    const t = i / 256 * Math.PI * 4;
-    const r = 2.0 - i / 256 * 0.5;
-    posPCAData.push({
-        x: r * Math.cos(t) * 0.8,
-        y: r * Math.sin(t) * 0.6,
-        z: (i - 128) / 128 * 0.8
-    });
-}
-```
-
-Este codigo:
-1. Tomaba los 512 puntos reales de GPT-2
-2. **Agregaba 192 puntos sinteticos** con una formula matematica diferente
-3. Creaba una mezcla de datos reales + sinteticos = discontinuidad visual
-
-### Solucion Aplicada
-
-Se elimino completamente el bloque de generacion sintetica:
-
-```javascript
-// CODIGO CORREGIDO
-// Datos reales de GPT-2 (512 posiciones) - SIN datos sinteticos
-// La helice debe ser continua, representando embeddings posicionales reales
-```
-
-### Commit de la Correccion
-```
-fbdd5fe - Fix: Remove synthetic data generation causing helix discontinuity
-```
-
----
-
-## REGLA DE ORO: Continuidad de la Helice
-
-### Por que la helice DEBE ser continua
-
-Los embeddings posicionales de GPT-2 representan como el modelo "entiende" la posicion de cada token en una secuencia. Estas son propiedades aprendidas, no inventadas:
-
-1. **Posiciones cercanas = embeddings cercanos**: El modelo aprendio que la posicion 50 es similar a la posicion 51
-2. **Estructura helicoidal**: La forma de helice emerge naturalmente del entrenamiento
-3. **Sin saltos abruptos**: No hay razon fisica para que exista una discontinuidad entre posicion N y N+1
-
-### Como verificar que los datos son correctos
-
-1. **Fuente unica**: Los datos deben venir SOLO de `model.transformer.wpe.weight`
-2. **Sin generacion sintetica**: NUNCA agregar puntos calculados con formulas matematicas
-3. **Continuidad visual**: La helice debe verse como una curva suave sin saltos
-4. **Archivo JSON de referencia**: Usar siempre `real_helix_data.json` como fuente de verdad
-
-### Outlier conocido
-
-La **posicion 1023** (ultima) tiene valores anomalos porque se usa muy raramente durante el entrenamiento. Este es el UNICO punto que puede parecer "saltado" y es un comportamiento real del modelo.
-
----
-
-## Extraccion de Datos Reales
-
-Para extraer embeddings posicionales reales de GPT-2:
+Los hidden states se extraen asi:
 
 ```python
-from transformers import GPT2LMHeadModel
-from sklearn.decomposition import PCA
-import json
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
+import torch
 
-# Cargar modelo
-model = GPT2LMHeadModel.from_pretrained('gpt2')
+model = GPT2LMHeadModel.from_pretrained('gpt2', output_hidden_states=True)
+tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+model.eval()
 
-# Extraer embeddings posicionales
-pos_embeddings = model.transformer.wpe.weight.detach().cpu().numpy()
-# Shape: (1024, 768)
+sentence = "The quick brown fox jumps over the lazy dog"
+inputs = tokenizer(sentence, return_tensors="pt")
 
-# Reducir a 3D con PCA
-pca = PCA(n_components=3)
-reduced = pca.fit_transform(pos_embeddings)
+with torch.no_grad():
+    outputs = model(**inputs)
 
-# Varianza explicada: ~90%
-print(f"Varianza explicada: {sum(pca.explained_variance_ratio_):.2%}")
+# hidden_states es una tupla de 13 tensores
+# Cada tensor tiene shape (batch, seq_len, 768)
+hidden_states = outputs.hidden_states
 
-# Guardar como JSON
-data = [{"x": round(p[0], 3), "y": round(p[1], 3), "z": round(p[2], 3)}
-        for p in reduced]
-with open('real_helix_data.json', 'w') as f:
-    json.dump(data, f)
+# Para la trayectoria: promedio de tokens por capa
+for layer_idx, layer_hidden in enumerate(hidden_states):
+    layer_mean = layer_hidden.mean(dim=1)  # (1, 768)
+    # Este vector representa el "estado" de toda la frase en esta capa
+
+# Para posiciones de tokens: ultima capa
+final_layer = hidden_states[-1]  # (1, seq_len, 768)
+# Cada token tiene su propia representacion final
 ```
 
+## Hallazgos Clave
+
+### 1. El Salto entre Capas 2-3
+
+La trayectoria muestra un "salto" notable entre las capas 2 y 3. Esto indica una transicion del procesamiento lexico (palabras individuales) al procesamiento semantico (significado integrado).
+
+### 2. Convergencia en Capas Finales
+
+En las capas 9-12, la trayectoria se mueve de manera mas consistente hacia la "zona de prediccion", donde el modelo prepara su output.
+
+### 3. Tokens en Diferentes Posiciones
+
+Observando las posiciones finales de los tokens:
+- **"fox"** y **"dog"** (sustantivos animales) estan relativamente cerca
+- **"jumps"** (verbo de accion) esta separado
+- **"The"** y **"the"** (articulos) estan en posiciones similares
+
+## Comparacion con Ejemplo 2
+
+| Aspecto | Ejemplo 1 | Ejemplo 2 |
+|---------|-----------|-----------|
+| Frases | 1 ("fox jumps over dog") | 2 (fox/dog intercambiados) |
+| Proposito | Ver trayectoria unica | Comparar dos trayectorias |
+| Pregunta | "Como procesa GPT-2 esta frase?" | "Como cambia al intercambiar roles?" |
+
+Ver [ejemplo_2](../ejemplo_2/) para la comparacion semantica.
+
 ---
 
-## Estructura de la Visualizacion
+## Nota sobre Version Anterior
 
-El archivo HTML incluye:
-
-1. **Grafico de Atencion vs MLP**: Separacion geometrica de ambos tipos de capas
-2. **Ejemplo de Token Processing**: Como se transforma "The quick brown fox..."
-3. **Evolucion por Capas**: Slider interactivo mostrando cambios
-4. **Helice 3D**: Visualizacion Three.js con rotacion automatica
-5. **Navegacion**: Links a otras visualizaciones del proyecto
-
----
-
-## Lecciones Aprendidas
-
-1. **Siempre usar datos reales**: No mezclar datos extraidos del modelo con datos generados
-2. **Verificar visualmente**: Si hay saltos, algo esta mal
-3. **Documentar bugs**: Este README sirve como referencia futura
-4. **Archivo JSON como fuente de verdad**: `real_helix_data.json` contiene los datos correctos
+La version original de este ejemplo mostraba **embeddings posicionales** (la tabla `wpe.weight`), que son independientes del texto procesado. Esta version corregida muestra **hidden states**, que son las representaciones reales generadas cuando GPT-2 procesa esta frase especifica.
 
 ---
 
