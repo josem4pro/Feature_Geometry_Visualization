@@ -253,6 +253,10 @@
                 <span class="token-chip" style="background: #8bc34a; color: white;">dog</span>
             </div>
             <div id="tokens-3d"></div>
+            <div class="controls">
+                <button id="btn-rotate-tokens" class="active">Auto-rotar</button>
+                <button id="btn-reset-tokens">Reset vista</button>
+            </div>
         </div>
 
         <div class="explanation">
@@ -489,9 +493,24 @@
             const line = new THREE.Line(lineGeometry, lineMaterial);
             scene.add(line);
 
+            let autoRotateTokens = true;
+
+            document.getElementById('btn-rotate-tokens').addEventListener('click', function() {
+                autoRotateTokens = !autoRotateTokens;
+                this.classList.toggle('active', autoRotateTokens);
+            });
+
+            document.getElementById('btn-reset-tokens').addEventListener('click', function() {
+                camera.position.set(4, 2, 4);
+                camera.lookAt(0, 0, 0);
+                controls.reset();
+            });
+
             function animate() {
                 requestAnimationFrame(animate);
-                scene.rotation.y += 0.002;
+                if (autoRotateTokens) {
+                    scene.rotation.y += 0.002;
+                }
                 controls.update();
                 renderer.render(scene, camera);
             }
