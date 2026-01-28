@@ -517,7 +517,7 @@
             const axesHelper = new THREE.AxesHelper(4);
             scene.add(axesHelper);
 
-            // Tokens frase 1
+            // Tokens frase 1 (esferas - naranja)
             norm1_tokens.forEach((p, i) => {
                 const geometry = new THREE.SphereGeometry(0.12, 16, 16);
                 const isDiff = (i === 3 || i === 8);
@@ -529,16 +529,17 @@
                 scene.add(sphere);
             });
 
-            // Tokens frase 2
+            // Tokens frase 2 (tetraedros/piramides - azul)
             norm2_tokens.forEach((p, i) => {
-                const geometry = new THREE.SphereGeometry(0.12, 16, 16);
+                const geometry = new THREE.TetrahedronGeometry(0.18);
                 const isDiff = (i === 3 || i === 8);
                 const material = new THREE.MeshBasicMaterial({
                     color: isDiff ? 0x1976d2 : 0x2196f3
                 });
-                const sphere = new THREE.Mesh(geometry, material);
-                sphere.position.set(p.x, p.y, p.z);
-                scene.add(sphere);
+                const tetra = new THREE.Mesh(geometry, material);
+                tetra.position.set(p.x, p.y, p.z);
+                tetra.rotation.x = Math.PI / 4;  // Rotar para mejor visibilidad
+                scene.add(tetra);
             });
 
             // Lineas conectando tokens correspondientes
