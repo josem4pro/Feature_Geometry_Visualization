@@ -34,6 +34,24 @@
             margin: 5px;
         }
         .nav-link:hover { background: rgba(79, 195, 247, 0.3); }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .controls button {
+            padding: 8px 16px;
+            background: #4fc3f7;
+            border: none;
+            border-radius: 6px;
+            color: #1a1a2e;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        .controls button:hover { background: #81d4fa; }
+        .controls button.active { background: #ff9800; }
         .sentences-box {
             background: rgba(0,0,0,0.3);
             padding: 20px;
@@ -243,14 +261,26 @@
         <div class="chart-box">
             <div class="chart-title">Frase 1: Fox salta sobre Dog</div>
             <div class="canvas-container" id="chart1"></div>
+            <div class="controls">
+                <button id="btn-rotate-1" class="active">Auto-rotar</button>
+                <button id="btn-reset-1">Reset</button>
+            </div>
         </div>
         <div class="chart-box">
             <div class="chart-title">Frase 2: Dog salta sobre Fox</div>
             <div class="canvas-container" id="chart2"></div>
+            <div class="controls">
+                <button id="btn-rotate-2" class="active">Auto-rotar</button>
+                <button id="btn-reset-2">Reset</button>
+            </div>
         </div>
         <div class="chart-box full-width">
             <div class="chart-title">Ambas Trayectorias Superpuestas</div>
             <div class="canvas-container" id="chartCombined" style="height: 500px;"></div>
+            <div class="controls">
+                <button id="btn-rotate-combined" class="active">Auto-rotar</button>
+                <button id="btn-reset-combined">Reset</button>
+            </div>
         </div>
     </div>
 
@@ -271,6 +301,10 @@
         <div class="chart-box full-width">
             <div class="chart-title">Comparacion de Tokens en el Espacio Latente</div>
             <div class="canvas-container" id="chartTokens" style="height: 500px;"></div>
+            <div class="controls">
+                <button id="btn-rotate-tokens" class="active">Auto-rotar</button>
+                <button id="btn-reset-tokens">Reset</button>
+            </div>
         </div>
     </div>
 
@@ -454,6 +488,8 @@
                 camera.updateProjectionMatrix();
                 renderer.setSize(w, h);
             });
+
+            return { controls, camera };
         }
 
         // Crear escena de tokens
@@ -539,23 +575,47 @@
                 camera.updateProjectionMatrix();
                 renderer.setSize(w, h);
             });
+
+            return { controls, camera };
         }
 
-        // Crear graficos
-        create3DScene('chart1', [
+        // Crear graficos y capturar controles
+        const scene1 = create3DScene('chart1', [
             { points: norm1_layers, color: 0xff9800 }
-        ]);
+        ], { autoRotate: true });
 
-        create3DScene('chart2', [
+        const scene2 = create3DScene('chart2', [
             { points: norm2_layers, color: 0x2196f3 }
-        ]);
+        ], { autoRotate: true });
 
-        create3DScene('chartCombined', [
+        const sceneCombined = create3DScene('chartCombined', [
             { points: norm1_layers, color: 0xff9800 },
             { points: norm2_layers, color: 0x2196f3 }
         ], { autoRotate: true });
 
-        createTokenScene('chartTokens');
+        const sceneTokens = createTokenScene('chartTokens');
+
+        // Configurar botones de control
+        function setupControls(btnRotateId, btnResetId, sceneObj) {
+            const btnRotate = document.getElementById(btnRotateId);
+            const btnReset = document.getElementById(btnResetId);
+
+            btnRotate.addEventListener('click', function() {
+                sceneObj.controls.autoRotate = !sceneObj.controls.autoRotate;
+                this.classList.toggle('active', sceneObj.controls.autoRotate);
+            });
+
+            btnReset.addEventListener('click', function() {
+                sceneObj.camera.position.set(5, 4, 6);
+                sceneObj.camera.lookAt(0, 0, 0);
+                sceneObj.controls.reset();
+            });
+        }
+
+        setupControls('btn-rotate-1', 'btn-reset-1', scene1);
+        setupControls('btn-rotate-2', 'btn-reset-2', scene2);
+        setupControls('btn-rotate-combined', 'btn-reset-combined', sceneCombined);
+        setupControls('btn-rotate-tokens', 'btn-reset-tokens', sceneTokens);
     </script>
 </body>
 </html>
